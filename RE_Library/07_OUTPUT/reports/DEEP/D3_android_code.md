@@ -371,7 +371,7 @@ The anchor `;->onCreate(Landroid/os/Bundle;)V` is a **raw smali method signature
 
 **Pattern name: mutually-self-defeating mechanisms.** Two features, each implemented correctly and each passing any individual test, that destroy each other's effect when composed. Neither is a bug in isolation — `hideAppIcon` does what it says, `unHideAppIcon` does what it says, and the connectivity gate is a reasonable guard. The failure exists only in the composition, which is why it survives review of either feature alone.
 
-Same shape as the Pupy debug/release mutual exclusion (§23.3) and MSF's `StageEncodingFallback` (§3.7): the defect lives in the interaction and is found by tracing convergence points, not by auditing features.
+Same shape as the Pupy debug/release mutual exclusion (D6 §23.3) and MSF's `StageEncodingFallback` (§3.7): the defect lives in the interaction and is found by tracing convergence points, not by auditing features.
 
 ---
 
@@ -571,7 +571,7 @@ The method is individually correct. `Looper.prepare()` is exactly what a develop
 
 §4.4 named **mutually-self-defeating mechanisms**: two features that each work alone and destroy each other when composed. `Looper.prepare()` is the **same class of defect one level down** — not two features defeating each other, but an unconditional guard against a condition that only arises on the second call. The unifying rule: **a correct statement in the wrong scope.**
 
-I am recording both under one axis rather than as unrelated bugs, because the corpus already has three instances (this, Pupy §23.3, MSF §3.7) and the third is the one that makes it a pattern rather than a coincidence.
+I am recording both under one axis rather than as unrelated bugs, because the corpus already has three instances (this, Pupy D6 §23.3, MSF §3.7) and the third is the one that makes it a pattern rather than a coincidence.
 
 ---
 

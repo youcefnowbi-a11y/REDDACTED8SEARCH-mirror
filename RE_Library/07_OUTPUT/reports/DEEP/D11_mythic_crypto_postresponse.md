@@ -368,7 +368,7 @@ The 22 handlers then write, against that task: **user output, interactive output
 | Detection signature | Plaintext channel reporting as encrypted **if `MythicEncrypts` set without a key** (§3.3); cross-callback `task_id` writes | header decommit (release), `%LOCALAPPDATA%\Microsoft\postmortem` | `0xC3` patches in `AmsiScanBuffer` / `EtwEventWrite` |
 
 **The methodological point, and it generalizes beyond this corpus:** **a correct primitive is not a correct integration**, and auditing the primitive alone produces a false clean bill. D4's finding was right and remains right; **it was also not sufficient**, because the properties it verified (fresh IV, EtM, verify-first, constant-time compare) are all *properties of a message*, and every finding in §3–§5 is a *property of the surrounding decision-making.* The three decisive questions are different ones: **which key was selected and who decided, under which action was the handler reachable, and on whose authority was the target chosen.**
-`[source: D4 (crypto primitive); D6 §22.6, §25.3; D1:1903-2008, :3186-3244; inference on the generalization]`
+`[source: D4 (crypto primitive); D6 §22.6, D6 §25.3; D1:1903-2008, :3186-3244; inference on the generalization]`
 
 **Ordering note, offered as inference:** Mythic's three findings are *architectural*, not configured-away — §4 and §5 are properties of the shipped control flow and are present in every build, which makes them structurally closer to Sliver's build-stability than to Pupy's build-dependence. **Mythic is the second framework in this corpus whose integration weaknesses survive any build configuration.** `[inference]`
 
