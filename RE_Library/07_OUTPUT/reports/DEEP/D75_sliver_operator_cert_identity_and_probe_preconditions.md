@@ -227,9 +227,62 @@ Select-String -Pattern 'models\.Certificate\{|Certificate\{\}' -CaseSensitive
 >
 > **BOUND: I read `certs\operators.go` (all 152 lines), `certs\certs.go:59-135`, `models\certificates.go` (all 43), `models\operator.go:31-48`, `db\helpers.go:1173-1182`, and `transport\middleware.go:125-156` + `:184-230`. I did NOT read the `new-operator` console handler end to end, so I cannot state whether operator NAMES collide at creation — but that is immaterial to the allowlists, which never read the name.**
 >
-> **FALSIFIER: a code path that sets the `Operator` context key from anything other than `tokenAuthFunc`'s `db.OperatorByToken` result, or an allowlist branch that reads `operator.Name` or a CN. §1.4's step table enumerates all four `context.WithValue(..., Operator, ...)` sites; there is no fifth.**
+> **FALSIFIER: a code path that sets the `Operator` context key from anything other than `tokenAuthFunc`'s `db.OperatorByToken` result, or an allowlist branch that reads `operator.Name` or a CN in a COMPARISON. §1.4's step table enumerates the WRITE sites; see §1.6a below, which corrects my own first count and reports the falsifier run.**
 >
 > **STATUS: residual RETIRED for the allowlists. See §1.5 for the surviving CN-dependent check.**
+
+`[src]` + `[inference]`
+
+### 1.6a CORRECTION — I wrote "four `context.WithValue` sites" from memory; there are THREE. And the falsifier probe found `Name` inside both allowlist functions.
+
+**Two errors in my own §1.6, both caught by running the probe I had specified as the falsifier.** `[src]`
+
+**Error 1 — the write-site count.** `[src]`
+
+```powershell
+Select-String -Pattern 'WithValue\(.*Operator[^s]' -CaseSensitive
+```
+
+`[src]`
+
+```
+server\transport\middleware.go:121: newCtx = context.WithValue(newCtx, Operator, "server")
+server\transport\middleware.go:143: newCtx = context.WithValue(newCtx, Operator, op.(*models.Operator))
+server\transport\middleware.go:154: newCtx = context.WithValue(newCtx, Operator, operator)
+```
+
+`[src]`
+
+> **THREE write sites, not four. I had counted the comma-ok READ at `operator_streams.go:116` (`operator, ok := ss.Context().Value(Operator).(*models.Operator)`) as a write.** `[src]` **That is D66 §6 F2's defect in a new costume — asserting a count before measuring. Same rule applies: the count now has its invocation printed above it.** `[src]` **Recorded as F6 in §4.** `[inference]`
+
+**The three write sites, classified — and the third is the one that matters:** `[src]`
+
+| Site | Value written | Plane |
+|---|---|---|
+| `middleware.go:121` | **the STRING `"server"`** (`serverAuthFunc`, the `enableAuth=false` branch) | local |
+| `middleware.go:143` | `op.(*models.Operator)` from `tokenCache` | mTLS |
+| `middleware.go:154` | `operator` from `db.OperatorByToken` | mTLS |
+
+`[src]` **Write sites 2 and 3 both derive from the token digest — the cache at `:141` and the database at `:146`.** `[src]` **Site 1 is the local transport and writes a string, which is why `operator_streams.go:116`'s comma-ok assertion fails there and the stream interceptor passes through.** `[src]` **No fifth site exists, but the correct statement of why is "three sites, two of which resolve from the token digest," not "four sites."** `[inference]`
+
+**Error 2 — `Name` DOES appear inside both allowlist functions. The falsifier required a sub-run, and the result strengthens the finding rather than weakening it.** `[src]`
+
+```powershell
+# every line in middleware.go:184-230 mentioning Name or CommonName
+```
+
+`[src]`
+
+```
+203: mtlsLog.Warnf("Permission denied for %s attempting to access %s", operator.Name, info.FullMethod)
+227: mtlsLog.Warnf("Permission denied for %s attempting to access %s", operator.Name, info.FullMethod)
+```
+
+`[src]`
+
+> **Both occurrences of `operator.Name` are ARGUMENTS TO A LOG FORMATTER inside the denial branch. Neither is a comparison, neither gates control flow, and both execute only AFTER the decision has already been made (`:204` and `:228` return `PermissionDenied`).** `[src]` **So the falsifier does not fire: `Name` is read, but never to authorize.** `[inference]` **This is worth stating precisely because a name-based grep for `operator.Name` returns two hits inside the exact functions I claimed never read a name — a shape-based probe would have had to classify them, and a name-based one would have reported a false positive.** `[inference]`
+
+> **REVISED BOUND on §1.6's negative: the allowlists read `operator.Name` in two places, both of which are log-formatting arguments in the denial path. Neither participates in the authorization decision. The claim stands, with this qualification attached.**
 
 `[src]` + `[inference]`
 
@@ -345,6 +398,8 @@ Select-String -Pattern 'models\.Certificate\{|Certificate\{\}' -CaseSensitive
 | **F3** | **D66 §2.2's control had no failure semantics.** | §2.2 | **Found by the Lead's review. A control that can only confirm is not a control. Six deviation cases now specified.** |
 | **F4** | **D66 §2.4 identified the `bufconn` false positive in prose but did not gate the procedure on it.** | §2.1 | **Now precondition P0, checked first, with four sub-checks.** |
 | **F5** | **No `-contains` / `-match` case-folding defect occurred in D75.** | §0 | **The mechanical fix (`-ccontains`/`-cmatch`, annotated at every use site) prevented the fourth occurrence. The rule is stated in §0 so it is auditable in the artifact.** |
+| **F6** | **§1.6 asserted "four `context.WithValue(..., Operator, ...)` sites" from memory; there are THREE.** | §1.6a | **I counted the comma-ok READ at `operator_streams.go:116` as a write. Caught by running the falsifier probe I had just specified. **This is D66 §6 F2's defect — an unmeasured count — in a new costume**, committed in the same report whose §0 declares that rule.** |
+| **F7** | **The falsifier probe found `operator.Name` twice inside the allowlist functions I claimed never read a name.** | §1.6a | **Both are log-formatter arguments in the denial path, after the decision. The claim survives; the bound is now qualified. A shape-blind grep would have reported a false positive here.** |
 
 `[src]`
 
