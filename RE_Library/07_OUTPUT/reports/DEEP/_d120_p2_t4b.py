@@ -106,5 +106,5 @@ print()
 
 json.dump(dict(dmulti=dmulti, cfam={k: v for k, v in cfam.items()}, holes=holes,
                amb=amb, totss=totss, overlap=overlap),
-          open(os.path.join(DEEP, "_d118_t4b.json"), "w"), indent=1)
-print("wrote _d118_t4b.json")
+          open(os.path.join(DEEP, "_d120_t4b.json"), "w"), indent=1)
+print("wrote _d120_t4b.json")

@@ -27,8 +27,8 @@ DEEP = os.path.join(REPORTS, "DEEP")
 print("=" * 78)
 print("T1 RECONCILIATION -- 84 vs 81")
 print("=" * 78)
-t4 = json.load(open(os.path.join(DEEP, "_d118_t4b.json")))
-t1 = json.load(open(os.path.join(DEEP, "_d118_t1.json")))
+t4 = json.load(open(os.path.join(DEEP, "_d120_t4b.json")))
+t1 = json.load(open(os.path.join(DEEP, "_d120_t1.json")))
 multi = {int(k): v for k, v in t4["dmulti"].items()}
 
 OUT = {"CROSSREF_AUDIT.md", "D59_crossref_remediation.md", "README.md"}
@@ -189,5 +189,5 @@ for t, c in cf.most_common(15):
 print()
 
 json.dump(dict(modes=rows, frag_dist=dict(res), unresolved=unres,
-               frag_counts=dict(cf)), open(os.path.join(DEEP, "_d118_t2t3.json"), "w"), indent=1)
-print("wrote _d118_t2t3.json")
+               frag_counts=dict(cf)), open(os.path.join(DEEP, "_d120_t2t3.json"), "w"), indent=1)
+print("wrote _d120_t2t3.json")

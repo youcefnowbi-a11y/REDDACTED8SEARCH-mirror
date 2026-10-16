@@ -27,7 +27,7 @@ WS = r"C:\Users\PC\OneDrive\Desktop\FOR REDDACTED"
 REPORTS = os.path.join(WS, "RE_Library", "07_OUTPUT", "reports")
 DEEP = os.path.join(REPORTS, "DEEP")
 
-t4 = json.load(open(os.path.join(DEEP, "_d118_t4b.json")))
+t4 = json.load(open(os.path.join(DEEP, "_d120_t4b.json")))
 multi = {int(k): v for k, v in t4["dmulti"].items()}
 
 OUT = {"CROSSREF_AUDIT.md", "D59_crossref_remediation.md", "README.md"}
@@ -114,5 +114,5 @@ for r in detail.get("UNIQUE", [])[:8]:
 print()
 
 json.dump(dict(rows=rows, dist=dict(cnt), uniq=uniq, none=none, amb2=amb2),
-          open(os.path.join(DEEP, "_d118_t1.json"), "w"), indent=1)
-print("wrote _d118_t1.json")
+          open(os.path.join(DEEP, "_d120_t1.json"), "w"), indent=1)
+print("wrote _d120_t1.json")

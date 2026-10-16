@@ -104,5 +104,5 @@ print("      control (D6, unambiguous check): %d" % sum(len(re.findall(r"\bD6\s*
 print()
 
 json.dump(dict(multi=multi, holes=holes, rows=rows, totss=totss, amb=amb),
-          open(os.path.join(DEEP, "_d118_t4.json"), "w"), indent=1)
-print("wrote _d118_t4.json")
+          open(os.path.join(DEEP, "_d120_t4.json"), "w"), indent=1)
+print("wrote _d120_t4.json")

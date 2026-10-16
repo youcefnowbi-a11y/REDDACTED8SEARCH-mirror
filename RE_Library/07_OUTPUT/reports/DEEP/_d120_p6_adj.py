@@ -16,8 +16,8 @@ WS = r"C:\Users\PC\OneDrive\Desktop\FOR REDDACTED"
 REPORTS = os.path.join(WS, "RE_Library", "07_OUTPUT", "reports")
 DEEP = os.path.join(REPORTS, "DEEP")
 
-t56 = json.load(open(os.path.join(DEEP, "_d118_t5t6.json")))
-t23 = json.load(open(os.path.join(DEEP, "_d118_t2t3.json")))
+t56 = json.load(open(os.path.join(DEEP, "_d120_t5t6.json")))
+t23 = json.load(open(os.path.join(DEEP, "_d120_t2t3.json")))
 
 BARE_EXT  = re.compile(r"^\.[A-Za-z0-9]{1,8}$")           # ".go", ".yaml"
 GLOBSHAPE = re.compile(r"[*?]")                            # "C-0*.tsv"
@@ -115,5 +115,5 @@ print("   >>> of which GLOBS (resolvable in principle, not by exact name): %d" %
 print()
 
 json.dump(dict(t6_dist=dict(d6), t6_pathish=len(pathish), t6_reach=len(reach),
-               t6_hard=hard, t3_dist=dict(d3)), open(os.path.join(DEEP, "_d118_t3t6adj.json"), "w"), indent=1)
-print("wrote _d118_t3t6adj.json")
+               t6_hard=hard, t3_dist=dict(d3)), open(os.path.join(DEEP, "_d120_t3t6adj.json"), "w"), indent=1)
+print("wrote _d120_t3t6adj.json")

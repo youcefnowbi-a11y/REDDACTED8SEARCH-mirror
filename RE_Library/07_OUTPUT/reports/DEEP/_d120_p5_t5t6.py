@@ -178,5 +178,5 @@ print()
 json.dump(dict(self=dict((k, list(v)) for k, v in selfhit.items()),
                cross=dict((k, list(v)) for k, v in crosshit.items()),
                cand=len(cand), found=len(found), miss=miss),
-          open(os.path.join(DEEP, "_d118_t5t6.json"), "w"), indent=1)
-print("wrote _d118_t5t6.json")
+          open(os.path.join(DEEP, "_d120_t5t6.json"), "w"), indent=1)
+print("wrote _d120_t5t6.json")
