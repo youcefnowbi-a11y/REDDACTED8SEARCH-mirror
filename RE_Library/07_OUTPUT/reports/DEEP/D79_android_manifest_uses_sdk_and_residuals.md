@@ -126,8 +126,38 @@ attr[6] platformBuildVersionName           TYPE_INT_DEC  data=10
 
 **Every integer above resolves to a plausible, internally consistent value** (`compileSdk 29`, codename `'10'` = API 29's Android-10 codename, `platformBuildVersionCode 29` = same). **The decode is self-consistent across three independent attributes — which is the check that would have caught a one-record offset error.**
 
-### 1.4 Cross-check against the project's own gradle config — INDEPENDENT CONFIRMATION
+### 1.4 INDEPENDENT SECOND IMPLEMENTATION — the same bytes, a different parser, identical values
 
+**After §1.1–§1.3 were written, I ran an independent decoder over the same file: Python 3.11.9 with the `struct` module, written separately from the PowerShell chunk walk, sharing no code.**
+
+```
+file=7700 B  root chunkSize=7700
+pool: hdrSize=28 count=78 flags=0x0 stringsStart=340
+decoded 78 strings
+
+<manifest> @4176
+  versionCode                  type=0x10 value=1
+  versionName                  type=0x03 value=1.0
+  compileSdkVersion            type=0x10 value=29
+  compileSdkVersionCodename    type=0x03 value=10
+  package                      type=0x03 value=com.example.reverseshell2
+  platformBuildVersionCode     type=0x10 value=29
+  platformBuildVersionName     type=0x10 value=10
+
+<uses-sdk> @4352
+  minSdkVersion                type=0x10 value=16
+  targetSdkVersion             type=0x10 value=22
+
+walk terminated at 7700 (file size 7700)
+```
+
+**Every value matches §0.1 and §1.3 exactly** — same offsets (`manifest` @4176, `uses-sdk` @4352), same count (78), same `dataType` (`0x10` = `TYPE_INT_DEC`), same integers. **And the walk terminates exactly at `7700`, the root `chunkSize`** — the structural bound from §0.2.
+
+**Two independent implementations agreeing on offsets, types, and values is stronger than either alone.** **Neither shares a language, a byte-order assumption, or a line of source with the other.**
+
+**Instrument note:** `apktool` 2.12.0 (`C:\tools\bin\apktool.cmd`) was tried first as a third-party decoder. **`apktool d` on `Compiled_apk\` emitted no manifest** — correctly, because **`Compiled_apk\` is a decompiled tree, not an APK** (D64 §0.1). **The attempt failed for a valid reason, and I am recording it as a failed attempt rather than as an absence of tooling.**
+
+### 1.5 Cross-check against the project's own gradle config — INDEPENDENT CONFIRMATION
 **`Android_Code\app\build.gradle`:**
 ```
 compileSdkVersion 29
@@ -146,7 +176,7 @@ targetSdkVersion 22
 
 **Five of five agree.** **The AXML decode is confirmed by a second, independent source that was not part of the decode.** **[read, two independent sources]**
 
-### 1.5 What the floor means — closing the loop with D64 §3
+### 1.6 What the floor means — closing the loop with D64 §3
 
 **D64 §3 established:** the AhMyth builder never injects an SDK floor; the produced floor is the **template's** (`10`/`18`) or the **victim's**, depending on path.
 
@@ -239,18 +269,22 @@ Android_Code\gradle\wrapper\gradle-wrapper.properties  (238 B)
 
 **What caught it:** printing the **raw byte** (`$b[$ao+15]` → `0x10`) instead of a mapped name, then comparing to the artifact's own consistency: **`compileSdkVersion=29` with `compileSdkVersionCodename='10'`** is only coherent if the integers are decimal. **A label is not a measurement.**
 
-### 4.4 The cross-check that carried the most weight
+### 4.4 The two cross-checks that carried the weight
 
-**§1.4's five-of-five agreement between the decoded AXML and `build.gradle` is the reason §0.1 can be stated without hedging.** **It is the only check in this report performed by a source outside the decoder** — and it is the one I would trust if any of §4.1–§4.3 had gone differently.
+**§1.4's independent second implementation and §1.5's `build.gradle` agreement are the reason §0.1 can be stated without hedging. Neither is part of the original decode.**
 
-**Generalising, because this is the second time it has paid:** **an instrument validating itself proves nothing. The decode was confirmed by a file the decode never touched.**
+1. **A separately-written Python decoder over the same bytes returned every value identically** — same offsets, same count, same `dataType=0x10`, same integers, and a walk terminating exactly at `chunkSize=7700`.
+2. **`build.gradle` agrees five-for-five** on compileSdk/minSdk/targetSdk/versionCode/versionName — **a source the decode never touched.**
+
+**Generalising, because this is the second time it has paid:** **an instrument validating itself proves nothing.** **A parser and a second parser agreeing proves more; a parser and an unrelated config file agreeing proves the most.** **The decode was confirmed by sources that had no part in producing it.**
 
 ### 4.5 Tool attribution
 
-- **AXML decode:** hand-written chunk walk + `Res_value` reader, **my own implementation** (§1.1). **Not a library, not `aapt2`, not apktool.** **A claim about bytes by my parser.**
+- **AXML decode (§1.1–§1.3):** hand-written PowerShell chunk walk + `Res_value` reader, **my own implementation**. **Not a library, not `aapt2`, not apktool.**
+- **AXML decode (§1.4):** hand-written **Python 3.11.9** decoder, **separate implementation, no shared code**. **Two of mine, agreeing.**
+- **`apktool` 2.12.0 (`C:\tools\bin\apktool.cmd`):** tried as a third-party decoder; **`apktool d` on `Compiled_apk\` emitted no manifest — correctly, because that path is a decompiled tree, not an APK (D64 §0.1).** **Recorded as a failed attempt for a valid reason, not as missing tooling.**
 - **`build.gradle` / `gradle-wrapper.properties` / `apktool.yml`:** plain-text reads. **Literal file contents.**
-- **String pool:** same hand-written parser, UTF-16 mode.
-- **No REA provider invoked.** `decode_android_resources` / `inspect_android_package` remain available and would be the natural **independent** instrument for R-79.1/R-79.2 — **a second implementation decoding the same artifact would be a genuine cross-check of §1. I did not invoke it, and I am not claiming it cannot be invoked.**
+- **No REA provider invoked.** `decode_android_resources` / `inspect_android_package` remain available and would be a **third, fully independent** instrument for R-79.1/R-79.2; **I did not invoke it, and I am not claiming it cannot be invoked.**
 
 **And the standing hazard, restated because it produced a fabricated diagnosis in D68:** **the corpus root contains a space (`FOR REDDACTED`). Every path in this pass was quoted.** **Any unquoted CLI argument against this tree is a live false-result.**
 
