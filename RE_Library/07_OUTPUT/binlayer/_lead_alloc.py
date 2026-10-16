@@ -22,15 +22,23 @@ REG = os.path.join(DEEP, "_ALLOC", "registry.json")
 LOCKDIR = os.path.join(DEEP, "_ALLOC", "locks")
 
 def load():
+    # utf-8-sig, NOT utf-8. On 2026-10-16 the Lead rewrote this registry with
+    # PowerShell 'Set-Content -Encoding UTF8', which emits a BOM in PS 5.1.
+    # 'encoding=utf-8' + json.load REJECTS a BOM, so EVERY claim and EVERY status
+    # died with JSONDecodeError while the registry body was perfectly intact.
+    # utf-8-sig tolerates a BOM when present and is identical to utf-8 when absent.
     if os.path.exists(REG):
-        with open(REG, 'r', encoding='utf-8') as f:
+        with open(REG, 'r', encoding='utf-8-sig') as f:
             return json.load(f)
     return {}
 
 def save(d):
+    # newline='\n' so the file is LF-only regardless of platform, and
+    # utf-8-sig WRITES NO BOM (only strips one on read). Atomic via os.replace
+    # so a crash mid-write cannot leave a truncated registry.
     os.makedirs(os.path.dirname(REG), exist_ok=True)
     tmp = REG + '.tmp'
-    with open(tmp, 'w', encoding='utf-8') as f:
+    with open(tmp, 'w', encoding='utf-8-sig', newline='\n') as f:
         json.dump(d, f, indent=1, sort_keys=True)
     os.replace(tmp, REG)
 
@@ -56,8 +64,11 @@ def claim(n, lane, title):
     d = load()
     if str(n) in d:
         h = d[str(n)]
-        print('HELD  D%d by %s since %s' % (n, h['lane'], h['at']))
-        print('      title: %s' % h['title'])
+        # .get throughout: a refusal path must REFUSE, not crash. The Lead's
+        # hand-written D130 entry omitted 'at' and took the refusal path down
+        # with KeyError -- so a taken number crashed instead of reporting held.
+        print('HELD  D%d by %s since %s' % (n, h.get('lane', '?'), h.get('at', '?')))
+        print('      title: %s' % h.get('title', '(none)'))
         return 1
     got = on_disk()
     if n in got:
@@ -97,9 +108,18 @@ def release(n, lane):
 def status():
     d = load()
     got = on_disk()
+    locks = locks_on_disk()
     print('=== RESERVED (claimed, not yet on disk) ===')
     for k in sorted(d, key=int):
-        print('  D%-4s %-14s %s   %s' % (k, d[k]['lane'], d[k]['at'], d[k]['title'][:60]))
+        e = d[k]
+        # .get, not []. On 2026-10-16 the Lead hand-wrote registry entries with
+        # Add-Member and omitted 'at', which crashed status() with KeyError.
+        # A reporting function must not die on a malformed record it is meant
+        # to REPORT. Missing fields render as '?' and the record stays visible.
+        lane = e.get('lane', '?')
+        at = e.get('at', '?')
+        title = e.get('title', '(none)')
+        print('  D%-4s %-14s %s   %s' % (k, lane, at, str(title)[:60]))
     print('\n=== ON DISK, MULTI-FILE (the collision detector) ===')
     bad = 0
     for n in sorted(got):
@@ -114,8 +134,14 @@ def status():
           (len(got), sum(len(v) for v in got.values())))
     multi = [n for n in got if len(got[n]) > 1]
     print('  distinct numbers: %d   numbers with >1 file: %d' % (len(got), len(multi)))
-    free = [n for n in range(100, 141) if n not in got and str(n) not in d]
-    print('  free D100-D140: %s' % ' '.join('D%d' % n for n in free))
+    # FREE is computed over the UNION of registry + locks + disk, and only for
+    # numbers above the existing corpus. Computing it over the registry alone is
+    # what let D132 read as free while its lock file was already held.
+    taken = set(int(k) for k in d) | set(locks) | set(got)
+    lo = max(got) + 1 if got else 100
+    free = [n for n in range(lo, lo + 12) if n not in taken]
+    print('  next free above the corpus (union of registry+locks+disk): %s'
+          % ' '.join('D%d' % n for n in free[:6]))
     return 0
 
 def verify():
@@ -136,6 +162,144 @@ def verify():
         print('  MULTI-FILE among them: %s' % ' '.join('D%d' % n for n in sorted(m)))
     return 0
 
+def locks_on_disk():
+    """Every D-number held by a lock file. THE SECOND SOURCE OF TRUTH.
+
+    A lock file is created BEFORE the registry is saved. If the process dies
+    between those two acts -- as every lane did on 2026-10-16 while the BOM
+    crash was live -- the result is a LOCK-HELD, UNREGISTERED number. A lane
+    reading only registry.json would call that number free and collide on it.
+    So the lock file is the more reliable of the two signals, not the less.
+    """
+    got = {}
+    for p in glob.glob(os.path.join(LOCKDIR, 'D*.lock')):
+        nm = os.path.basename(p)
+        j = 1
+        while j < len(nm) and nm[j].isdigit():
+            j += 1
+        if j == 1:
+            continue
+        got[int(nm[1:j])] = p
+    return got
+
+def repair(apply_fix=False):
+    """Reconcile registry.json against lock files AND files on disk.
+
+    Reports three fault classes and, with --apply, backfills orphan locks into
+    the registry. A half-claim is a real state, not corruption: the number is
+    TAKEN and must never be handed out twice.
+    """
+    d = load()
+    locks = locks_on_disk()
+    got = on_disk()
+    reg_nums = set(int(k) for k in d)
+    lock_nums = set(locks)
+    disk_nums = set(got)
+
+    orphans = sorted(lock_nums - reg_nums)
+    ghosts = sorted(reg_nums - lock_nums)
+    unreg_disk = sorted(disk_nums - reg_nums)
+
+    print('=== F1: LOCK-HELD but NOT REGISTERED (half-claim; number is TAKEN) ===')
+    if orphans:
+        for n in orphans:
+            raw = ''
+            try:
+                with open(locks[n], 'r', encoding='utf-8-sig') as f:
+                    raw = f.read().strip()
+            except OSError as e:
+                raw = '<unreadable: %s>' % e
+            print('  D%-4d  %s' % (n, raw.replace('\n', ' ')))
+            print('        lock file %d B -- treating as HELD' % os.path.getsize(locks[n]))
+    else:
+        print('  none')
+
+    print('\n=== F2: REGISTERED but NO LOCK (lock lost or never created) ===')
+    print('  %s' % (' '.join('D%d' % n for n in ghosts) or 'none'))
+
+    print('\n=== F3: FILE ON DISK but NOT REGISTERED (pre-registry work) ===')
+    print('  %s' % (' '.join('D%d' % n for n in unreg_disk) or 'none'))
+
+    all_taken = sorted(reg_nums | lock_nums | disk_nums)
+    # 'next free' must be ABOVE the existing corpus, not the lowest unused
+    # integer. D1-D122 were written before this registry existed, so D27 has
+    # neither a lock nor an entry -- but it DOES have a report on disk. A naive
+    # lowest-unused scan reports D27 and would hand a lane a claimed number.
+    lo = (max(got) + 1) if got else 100
+    nxt = lo
+    while nxt in all_taken:
+        nxt += 1
+    print('\n=== CROSS-CHECK ===')
+    print('  registry %d   locks %d   on-disk %d   union %d'
+          % (len(reg_nums), len(lock_nums), len(disk_nums), len(all_taken)))
+    print('  max taken: D%d' % (max(all_taken) if all_taken else 0))
+    print('  next free above corpus: D%d   (lowest-unused would wrongly say D%d)'
+          % (nxt, next((n for n in range(1, lo) if n not in all_taken), 0)))
+    print('  NOTE: D1-D122 are ON DISK WITHOUT LOCKS (pre-registry work).'
+          ' Never claim below D%d.' % lo)
+
+    if not orphans:
+        print('\nNothing to backfill.')
+        return 0
+
+    if not apply_fix:
+        print('\nDRY RUN. Re-run with:  repair --apply   to backfill %d orphan lock(s).'
+              % len(orphans))
+        return 0
+
+    for n in orphans:
+        lane, at, title = 'unknown', '', ''
+        try:
+            with open(locks[n], 'r', encoding='utf-8-sig') as f:
+                parts = f.read().strip().split('|')
+            if len(parts) >= 3:
+                lane, at, title = parts[0], parts[1], parts[2]
+            elif len(parts) == 1:
+                title = parts[0]
+        except OSError:
+            pass
+        d[str(n)] = {'lane': lane, 'at': at, 'title': title or '(backfilled from lock)'}
+        print('  backfilled D%d -> lane=%s' % (n, lane))
+    save(d)
+    print('\nBackfilled %d. Re-verify with:  repair' % len(orphans))
+    return 0
+
+def controls():
+    """Print the claim-gate controls, with the LEAD'S OWN DEFECT recorded.
+
+    On 2026-10-16 the Lead issued every lane this control pair:
+        positive:  Test-Path "129*"   -> claimed True
+        negative:  Test-Path "<new>*" -> claimed False
+    MEASURED: "129*" -> False, because the files are named D129_*.md.
+    So BOTH halves returned False. A control pair whose positive and negative
+    are indistinguishable tests NOTHING -- it is an assertion that cannot fail,
+    which is the exact defect it was written to catch. It was issued to eight
+    lanes across the whole session before havoc-deep measured it.
+
+    The correct form keys on the FULL FILENAME PREFIX (D<num>), which is also
+    the registry key. Naked 'D<num>.md' is a THIRD wrong form: files carry a
+    slug after the number, so 'D129.md' also returns False and a lane reading
+    it as 'taken' would be reading a name that never exists.
+    """
+    deep = DEEP
+    print('=== CLAIM-GATE CONTROLS (run both; they must DIFFER) ===')
+    rows = [
+        ('D130*',  'positive: a KNOWN-taken number', True),
+        ('D138*',  'negative: a KNOWN-free number',  False),
+        ('130*',   'WRONG FORM: misses the D prefix', None),
+        ('D130.md','WRONG FORM: no slug, never exists', None),
+    ]
+    for pat, what, expect in rows:
+        got = bool(glob.glob(os.path.join(deep, pat)))
+        if expect is None:
+            verdict = 'DO NOT USE'
+        else:
+            verdict = 'ok' if got == expect else '*** MISMATCH ***'
+        print('  %-9s -> %-5s   %-38s %s' % (pat, got, what, verdict))
+    print('  If positive and negative return the SAME value, the pair tests')
+    print('  nothing. That happened, and this line exists so it cannot recur.')
+    return 0
+
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         print(__doc__); sys.exit(1)
@@ -148,4 +312,8 @@ if __name__ == '__main__':
         sys.exit(status())
     if op == 'verify':
         sys.exit(verify())
+    if op == 'repair':
+        sys.exit(repair(apply_fix=('--apply' in sys.argv)))
+    if op == 'controls':
+        sys.exit(controls())
     print(__doc__)
