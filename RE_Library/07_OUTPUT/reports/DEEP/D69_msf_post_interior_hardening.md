@@ -27,7 +27,7 @@
   - §3.4 Verdict: a third class
 - **§4 — Q4: the `alias` class, proved**
   - §4.1 The count correction
-  - §4.2 Nine dead aliases
+  - §4.2 Eight dead aliases, and the ninth killed
   - §4.3 Why this is the `restypes` analogue
 - **§5 — Residual unknowns, each with a concrete probe**
 - **§6 — Instrument record**
@@ -71,7 +71,7 @@ Applying a real Ruby alias grammar (`alias new old`, `alias :new :old`, `alias_m
 
 ### §0.2 D45's `def check` probe and the 8 false positives stand as reported; the §4 verdict did not
 
-D45 §0.1 and §6.2 already record the name-filter error correctly (8 false positives, all correct by composition). **What needs correcting is the conclusion I drew from §4's bad count.** I wrote that `alias`/`alias_method` at "95 sites" was the one silent form of the `restypes` class, **and named it a candidate with no instance proven.** The count was wrong *and* the class had a provable instance sitting in it. §4 now proves nine. **A candidate class is still worth naming when the count is wrong — but I should have looked before declaring it unproven.**
+D45 §0.1 and §6.2 already record the name-filter error correctly (8 false positives, all correct by composition). **What needs correcting is the conclusion I drew from §4's bad count.** I wrote that `alias`/`alias_method` at "95 sites" was the one silent form of the `restypes` class, **and named it a candidate with no instance proven.** The count was wrong *and* the class had a provable instance sitting in it. §4 now proves eight. **A candidate class is still worth naming when the count is wrong — but I should have looked before declaring it unproven.**
 
 ### §0.3 The brief's Q3 framing offers two outcomes and the corpus does neither
 
@@ -441,7 +441,7 @@ else
 
 **55 alias statements in 32 files**, per §0.1. D45's 95/54 was a substring-class error. **Eight of the 55 are `alias_method`, 47 are `alias`.**
 
-### §4.2 Nine dead aliases
+### §4.2 Eight dead aliases, and the ninth killed
 
 **Invocation.** Two stages. (1) Parse every real alias statement in `lib/msf/core` with a Ruby alias grammar. (2) Tokenise **all 8,570 `.rb` files** under the repo root once, counting every identifier, then compare each alias's name and target against the corpus counts. Scanning once is O(bytes); my first attempt re-scanned the corpus 53 times and had to be killed at 120 s.
 
@@ -449,26 +449,33 @@ else
 
 | control | corpus count |
 |---|---|
-| `session` | 8,938 |
-| `print_good` | 5,398 |
-| `cmd_exec` | 1,585 |
+| `session` | 8,520 |
+| `print_good` | 5,205 |
+| `cmd_exec` | 1,437 |
 | `session_changed?` | 2 |
 
 **`session_changed?` is the important control: a rare-but-real name counts 2, so a count of 0 means "never written", not "too rare to see."**
 
-**Class A — alias name referenced zero times corpus-wide (after subtracting its own declaring line): 9 of 55.**
+**Class A — alias name referenced zero times corpus-wide (after subtracting its own declaring line): 8 of 55.**
 
 | file | line | alias → target |
 |---|---|---|
 | `rhosts_walker.rb` | 268 | `parse_https_uri` → `parse_http_uri` |
 | `rhosts_walker.rb` | 307 | `parse_ldaps_uri` → `parse_ldap_uri` |
 | `auxiliary/web.rb` | 102 | `log_file_if_exists` → `log_resource_if_exists` |
-| `exe/segment_appender.rb` | 25 | `secname=` → `section_name=` |
 | `post/file.rb` | 682 | `mv_file` → `rename_file` |
 | `post/file.rb` | 709 | `cp_file` → `copy_file` |
 | `post/windows/file_system.rb` | 250 | `delete_junction` → `delete_mount_point` |
 | `rpc/v10/rpc_module.rb` | 321 | `rpc_compatible_exploit_payloads` → `rpc_compatible_payloads` |
 | `rpc/v10/rpc_module.rb` | 395 | `rpc_target_compatible_exploit_payloads` → `rpc_target_compatible_payloads` |
+
+**A ninth candidate was killed by the probe §5.6 promised: `exe/segment_appender.rb:25 alias secname= section_name=` is LIVE.** My identifier counter is structurally blind to Ruby writer invocation, because a writer is called by assignment syntax — `x.secname = y` — in which no token `secname=` appears. Searching for the assignment form instead:
+
+```
+spec\lib\msf\core\exe\segment_appender_spec.rb:30   appender.secname = 'legacy'
+```
+
+**One hit, in the spec.** `section_name=` itself has **zero** assignment-syntax hits — it is reachable only through the alias, which is exactly what a compatibility alias is for. **So `secname=` is the control proving this class is provable rather than assumed: an alias can be invoked by a syntax the token counter cannot see, and only a syntax-aware probe catches it.** The count is 8.
 
 **Class B — alias pointing at a target name that is itself never referenced: 0 of 55.** Every target is live. **The control that makes this zero meaningful:** `session_changed?` at count 2 shows the counter resolves rare names.
 
@@ -476,19 +483,19 @@ else
 
 | alias → target | alias# | target# |
 |---|---|---|
-| `file_rm` → `rm_f` | 37 | 131 |
+| `file_rm` → `rm_f` | 37 | 132 |
 | `dir_rm` → `rm_rf` | 6 | 38 |
 | `move_file` → `rename_file` | 5 | 15 |
-| `ls` → `dir` | 134 | 984 |
-| `client` → `session` | 7,286 | 8,938 |
+| `ls` → `dir` | 134 | 986 |
+| `client` → `session` | 7,086 | 8,915 |
 
 ### §4.3 Why this is the `restypes` analogue
 
 **The `restypes` defect shape:** a misspelled attribute is accepted by `__setattr__` on a `CDLL` and the intended value is never applied. **A reader probing for the correct name finds the assignment present** — the defect is invisible to a name-based search.
 
-**The Ruby analogue here is the same failure in the opposite direction, and the 9 prove it:** `mv_file` is declared (`post/file.rb:682`) with a live target (`rename_file`, called 15 times). **A name-based probe for `mv_file` finds a definition and concludes it is used.** The method a caller would have to invoke is one that no code ever invokes.
+**The Ruby analogue here is the same failure in the opposite direction, and the 8 prove it:** `mv_file` is declared (`post/file.rb:682`) with a live target (`rename_file`, called 15 times). **A name-based probe for `mv_file` finds a definition and concludes it is used.** The method a caller would have to invoke is one that no code ever invokes.
 
-**So the answer to Q4's ask — prove or kill — is: proved, 9 instances, with the class-B zero showing these are not aliases to dead code.** And the *direction* of the finding is worth stating plainly: **this is a dead-alias class, not a dead-code class.** The target is alive; the alias is the unused name. **A liveness analysis that starts from definitions will miss all nine; one that starts from call sites will see eight of them vanish — `secname=` is a writer, and writers are invoked by assignment syntax (`x.secname = y`), which the identifier counter I used would score as `secname=` only if the writer were called explicitly.** That is §5.6, and it is the one place my own count could be wrong in the direction of a false positive.
+**So the answer to Q4's ask — prove or kill — is: proved, 8 instances, with the class-B zero showing these are not aliases to dead code.** And the *direction* of the finding is worth stating plainly: **this is a dead-alias class, not a dead-code class.** The target is alive; the alias is the unused name. **A liveness analysis that starts from definitions will miss all eight; one that starts from call sites must additionally be syntax-aware — `secname=` (§4.2) is invoked by assignment syntax that a token counter cannot see, and it was the one candidate that the naive count got wrong.**
 
 ---
 
@@ -519,10 +526,18 @@ The number that would convert §2.5's 138 into a risk count.
 `read_file` returns `nil` at `file.rb:494` on a mismatch; `dir` returns nothing if no branch matched.
 **Probe:** for the 20 most-included consumers of `Post::File`, grep `.read_file(` and `read_file(` and read the assignment plus the next 3 lines. **Bounded: 20 modules.**
 
-### §5.6 Is `secname=` genuinely dead, or does my counter misread writer calls?
+### §5.6 RESOLVED — `secname=` is invoked by assignment syntax, so class A is 8
 
-`exe/segment_appender.rb:25` aliases `secname=` → `section_name=`. Ruby invokes writers by assignment syntax, and my identifier counter counts the token `secname=` — which appears in `x.secname = y` as `secname` + `=`.
-**Probe:** search for `\.secname\s*=` (assignment syntax) rather than the token `secname=`. **If any exist, class A is 8, not 9.** I name this as the one place my own result could be a false positive.
+`exe/segment_appender.rb:25` aliases `secname=` → `section_name=`. Ruby invokes writers by assignment syntax, and an identifier counter looking for the token `secname=` cannot see `x.secname = y`.
+
+**Probe, run:** anchored `\.secname\s*=(?!=)` and `\.section_name\s*=(?!=)` over all 8,570 `.rb` files.
+
+| pattern | hits |
+|---|---|
+| `.secname =` | **1** — `spec\lib\msf\core\exe\segment_appender_spec.rb:30` (`appender.secname = 'legacy'`) |
+| `.section_name =` | **0** |
+
+**Result: `secname=` is LIVE. Class A is 8, not 9. This section is closed.** The general lesson is §6.9.
 
 ### §5.7 Is `post/architecture.rb:18`'s two-label platform dispatch reachable with a third platform?
 
@@ -578,22 +593,44 @@ The number that would convert §2.5's 138 into a risk count.
 **What happened:** OTHER holds 13 sites, **and at least 2 of them (`enum_network.rb:95`, `cups_root_file_read.rb:177`) interpolate.** Reporting "13 OTHER" without that caveat would have read as "13 not-interpolated."
 **Rule:** **an "unclassified" bucket must never be reported adjacent to a "not a risk" reading.** Name what is known to be inside it.
 
+### §6.7 `[instrument]` — `\b` after a name ending in `?` or `!` never matches
+
+**What I did:** built the reference counter as `re.escape(name) + r"\b"`.
+**What happened:** `\b` is a **word/non-word transition**. For `respond_to?` the name ends in `?`, which is non-word, and the following character in `respond_to?(x)` is `(`, also non-word — **no boundary, no match.** `respond_to?` scored **0**, `session_changed?` scored **0**, `file_exist?` scored **0**.
+**Why it mattered, and this is the dangerous part:** the failure mode is **silent zeros on exactly the names being tested**, which *manufactured* dead-alias rows. On the broken counter, `file_exist?` / `exists?` / `include?` all appeared as dead aliases with dead targets — **seven false dead rows.** I caught it only because `respond_to?` and `session_changed?` are controls whose liveness I knew independently.
+**Fix:** replace `\b` with a negative lookahead `(?![A-Za-z0-9_])`.
+**Rule:** **`\b` is wrong at the end of any Ruby method name containing `?`, `!`, or `=`.** And: **a counter whose failures are silent zeros must carry controls that are provably non-zero — `session`/`cmd_exec`/`print_good` were all passing while every `?`-suffixed name returned 0.**
+
+### §6.8 `[instrument]` — a bare-call pattern requiring `(` or `=` misses zero-argument calls
+
+**What I did:** detected bare calls with `name\s*[(=]`.
+**What happened:** `session_changed?` is called as `!session_changed?` with no parentheses or assignment. **Scored 0.** The same probe then reported `session` as 256 instead of 8,520 because it also required a following `(`/`=`.
+**Rule:** **in Ruby, parenthesised and unparenthesised calls are both idiomatic.** A call detector keyed on `(` under-counts; key it on the *absence* of a preceding `.`/`:` plus the identifier end.
+
+### §6.9 `[instrument]` — a token counter cannot see Ruby writer invocation
+
+**What I did:** counted alias usage as identifier occurrences, then treated 0 as dead.
+**What happened:** `secname=` scored 0 as an identifier — **correctly**, because a writer is invoked as `x.secname = y` and the token `secname=` never appears. The zero was a true measurement of the wrong question. **`spec\lib\msf\core\exe\segment_appender_spec.rb:30` calls it.** One false positive (§5.6).
+**Rule:** **for a setter alias, the probe must be syntax-aware: `\.name\s*=(?!=)`, not `name=`.** This is the one residual I flagged in draft and then actually resolved — the flag was right, the prediction ("class A is 8, not 9") was right, and it is the only place where keeping a wrong number in a residual section paid off.
+
 ---
 
 ## §7 Status
 
 **Deliverable:** `RE_Library\07_OUTPUT\reports\DEEP\D69_msf_post_interior_hardening.md` — this file, sole owner `source-diver`.
 
-**Acceptance:** §0 leads with three corrections. **Q1 §1** (reach: 10 dispatches, 9 without `else`; 64 `if`-guards; 13 declared-incompatible modules, none reaching a dispatcher; 50 UNSET module gap named). **Q2 §2** (rule printed with 4 boundary decisions and 2 controls; 455 sites / 170 files reconciled against D45's 466/171 by 11 prose comments; samples of all four classes; the single risk number refused and replaced with 5 / 138 / 13). **Q3 §3** (4 mismatch classes enumerated, 3 dispatch families, 23 `else` catch-alls, verdict as a third class). **Q4 §4** (55 statements / 32 files, 9 dead aliases proved, class B = 0, one residual that could make it 8). Every number has its invocation. §5 residuals each with a probe. §6 instrument record, 6 entries.
+**Acceptance:** §0 leads with three corrections. **Q1 §1** (reach: 10 dispatches, 9 without `else`; 64 `if`-guards; 13 declared-incompatible modules, none reaching a dispatcher; 50 UNSET module gap named). **Q2 §2** (rule printed with 4 boundary decisions and 2 controls; 455 sites / 170 files reconciled against D45's 466/171 by 11 prose comments; samples of all four classes; the single risk number refused and replaced with 5 / 138 / 13). **Q3 §3** (4 mismatch classes enumerated, 3 dispatch families, 23 `else` catch-alls, verdict as a third class). **Q4 §4** (55 statements / 32 files, **8** dead aliases proved, class B = 0, the ninth killed by a syntax-aware probe). Every number has its invocation. §5 residuals each with a probe. §6 instrument record, 9 entries.
 
 **Ranked, the five strongest claims:**
 
-1. **Nine dead aliases, proved against a live counter** (§4.2). `post/file.rb:682 mv_file → rename_file`, `:709 cp_file → copy_file`, `delete_junction`, and five more. **Class B = 0, so these are unused names pointing at live code — invisible to a definition-based liveness check.** Controls: `session` 8,938, `print_good` 5,398, `cmd_exec` 1,585, `session_changed?` 2.
+1. **Eight dead aliases, proved against a validated counter** (§4.2). `post/file.rb:682 mv_file → rename_file`, `:709 cp_file → copy_file`, `delete_junction`, and five more. **Class B = 0, so these are unused names pointing at live code — invisible to a definition-based liveness check.** Controls: `session` 8,520, `print_good` 5,205, `cmd_exec` 1,437, `session_changed?` 2. **The ninth candidate, `secname=`, was killed by the syntax-aware probe — and that kill is the control that proves the class rather than assuming it.**
 2. **`case` is 9 of 96 session-dispatch sites in the post interior; `if session.type ==` is 64, `elsif` 23** (§1.2). **D45 §3.5 framed the silent branch as a `case` problem — the dominant pattern is not `case`, and it fails by `nil`-return rather than by empty string.**
 3. **`Post::File` — included by 232 of 436 post modules — has 35 `if`-guards, 19 `elsif`-chains and zero `case`** (§1.2/§3.2). `read_file:484` returns early for any type outside `{meterpreter, shell, powershell}`.
 4. **23 `else` catch-alls end in unconditional shell execution**, including `rm -rf` at `file.rb:648` selected by three negative conditions (not-meterpreter ∧ not-powershell ∧ not-windows) with no `command_exists?` guard. (§3.3)
 5. **Q1's reach verdict is a bounded negative, not an absolute one** (§1.4): all 13 declared-incompatible modules are dispatcher-free, so **no declared path reaches the silent branch** — and the 50 UNSET modules are the named gap, because `session_types = []` is truthy and disables the type check entirely at `:192`.
 
-**Not covered, named rather than implied:** §5.4 (the 138-site provenance trace) is the highest-value open probe; §5.3 (second arguments) is the cheapest and could move §2.5's interpolated count.
+**Not covered, named rather than implied:** §5.4 (the 138-site provenance trace) is the highest-value open probe; §5.3 (second arguments) is the cheapest and could move §2.5's interpolated count. **§5.6 is closed, not open** — the probe it promised was run and it reduced class A from 9 to 8.
 
-**Nothing on disk was modified except this file and the four throwaway probe scripts `_d69_*.py` in the same directory.** No verified artefact (`D7`, `D8`, `D9`, `D22`, `D42`, `D58`) was touched; the D45 figures I correct here are corrected *in this document*, and D45 itself is left as delivered.
+**Nothing on disk was modified except this file and nine throwaway probe scripts `_d69_*.py` in the same directory.** No verified artefact (`D7`, `D8`, `D9`, `D22`, `D42`, `D58`) was touched; the D45 figures I correct here are corrected *in this document*, and D45 itself is left as delivered.
+
+**One instrument-species note for the corpus ledger:** the four alias-counter defects in §6.7–§6.9 were found **only because I kept the superseded probe and read its disagreement with the new one instead of deleting it.** The old probe disagreed with the report on 16 rows; adjudicating that disagreement produced three fixes and one killed finding. **A discarded probe is a control destroyed.**
