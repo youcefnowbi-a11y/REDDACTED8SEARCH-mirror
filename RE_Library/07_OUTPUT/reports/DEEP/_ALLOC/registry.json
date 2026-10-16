@@ -46,6 +46,11 @@
   "lane": "source-diver",
   "title": "close_the_open_residuals_D85_D94_ToMap_callers_and_concurrency_D91_OwnershipFilter_census_reconciliation_D92_FromJson_unprotected_path_and_null_Author_startup_abort_D94_unstable_denominators_172_and_113"
  },
+ "132": {
+  "at": "2026-10-16 23:06:49",
+  "lane": "havoc-deep",
+  "title": "havoc agent library graph, dead build arms, dispatch axes, fingerprint surface"
+ },
  "133": {
   "at": "2026-10-16 23:04:30",
   "lane": "covenant-diver",
@@ -59,7 +64,7 @@
  "135": {
   "at": "2026-10-16 23:05:20",
   "lane": "archive-diver",
-  "title": "merlin detection surface: the 115-byte UA fingerprint, cross-platform build identity cluster, export-table reliability, and module-catalogue shape"
+  "title": "merlin detection surface: the 113-byte UA fingerprint (brief said 115; the 2 bytes are the escaping tail), cross-platform build identity cluster, export-table reliability, and module-catalogue shape"
  },
  "136": {
   "at": "2026-10-16 23:06:53",
@@ -70,5 +75,20 @@
   "at": "2026-10-16 23:08:07",
   "lane": "android-diver",
   "title": "android detection surface: C2 fingerprints, permission controls, and the DEX-vs-source gap"
+ },
+ "138": {
+  "at": "2026-10-16 23:10:01",
+  "lane": "sliver-diver",
+  "title": "R-130.3 band 6: which PE section holds the 1375 differing bytes, run structure, and entropy with controls"
+ },
+ "139": {
+  "at": "2026-10-16 23:10:28",
+  "lane": "havoc-deep",
+  "title": "PROBE-ONLY"
+ },
+ "140": {
+  "at": "2026-10-16 23:10:37",
+  "lane": "source-diver",
+  "title": "shared_mechanism_map_transport_framing_crypto_encoding_dispatch_evasion_clusters_shared_vs_target_unique_with_strong_weak_detection_discriminators_false_positive_baseline_and_dead_arm_unfirable_rule_census"
  }
 }

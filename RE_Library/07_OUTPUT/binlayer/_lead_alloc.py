@@ -162,6 +162,59 @@ def verify():
         print('  MULTI-FILE among them: %s' % ' '.join('D%d' % n for n in sorted(m)))
     return 0
 
+def check(num):
+    """Answer ONE question about ONE number, with a control that can fail.
+
+    ADDED AFTER A LEAD DEFECT (I12). I invoked `verify 141` and `verify 142` and
+    read two IDENTICAL outputs as 'positive and negative agree, so D141 is held'.
+    But verify() takes NO ARGUMENT -- the dispatch discarded '141' and '142' and
+    printed the same whole-corpus report both times. A SILENT ARGUMENT DISCARD.
+    Identical output from two different inputs is not agreement; it is evidence
+    the input never reached the function. Same species as `-readOnly`, which
+    prints "Analysis succeeded" and then discards the analysis.
+
+    This op therefore (a) takes the number, (b) reports each of the three
+    sources of truth separately, and (c) exits non-zero when the number is
+    genuinely free, so a caller can use it as a positive/negative control pair.
+    """
+    d = load()
+    got = on_disk()
+    lk = locks_on_disk()
+    in_reg = str(num) in d
+    on_dsk = num in got
+    has_lk = num in lk
+    print('=== check D%d ===' % num)
+    print('  registry : %s%s' % (in_reg, '' if not in_reg else
+          '  lane=%s at=%s' % (d[str(num)].get('lane', '?'), d[str(num)].get('at', '?'))))
+    if on_dsk:
+        print('  disk     : True  %d file(s)' % len(got[num]))
+        for f in got[num]:
+            print('             %s' % f)
+    else:
+        print('  disk     : False')
+    if has_lk:
+        print('  lock     : True  %s' % os.path.basename(lk[num]))
+        try:
+            head = open(lk[num], encoding='utf-8-sig').read().split('|')[0].strip()
+            print('             holder=%s' % head)
+        except Exception as e:
+            print('             (unreadable: %s)' % e)
+    else:
+        print('  lock     : False')
+
+    # The three sources are ORed, exactly as the allocator does when deciding
+    # whether a number is free. Report the ORAGEN result and the disagreement.
+    held = in_reg or on_dsk or has_lk
+    print('  VERDICT  : %s' % ('HELD' if held else 'FREE'))
+    if in_reg != on_dsk or in_reg != has_lk:
+        print('  *** SOURCES DISAGREE ***  registry=%s disk=%s lock=%s'
+              % (in_reg, on_dsk, has_lk))
+        print('      The lock is authoritative and the registry is the derived')
+        print('      view: the lock is created BEFORE the registry is saved, so a')
+        print('      crash between the two leaves LOCK-HELD, UNREGISTERED.')
+    return 0 if held else 1
+
+
 def locks_on_disk():
     """Every D-number held by a lock file. THE SECOND SOURCE OF TRUTH.
 
@@ -312,8 +365,15 @@ if __name__ == '__main__':
         sys.exit(status())
     if op == 'verify':
         sys.exit(verify())
+    if op == 'check' and len(sys.argv) == 3:
+        sys.exit(check(int(sys.argv[2])))
     if op == 'repair':
         sys.exit(repair(apply_fix=('--apply' in sys.argv)))
     if op == 'controls':
         sys.exit(controls())
-    print(__doc__)
+    # LOUD FAILURE ON AN UNRECOGNISED INVOCATION. Without this, `check` with a
+    # missing number would fall through and print usage while exiting 0 -- the
+    # same silent-discard that made `verify 141` read as a control.
+    sys.stderr.write('ERROR: unrecognised invocation: %s\n' % ' '.join(sys.argv[1:]))
+    sys.stderr.write('       nothing was done. usage: claim|release|status|verify|check|repair|controls\n')
+    sys.exit(2)

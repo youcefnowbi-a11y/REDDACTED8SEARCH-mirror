@@ -1,7 +1,7 @@
-# D132 — Android detection surface: C2 fingerprints, the permission-as-fingerprint control, and the DEX-vs-source gap as a bounded rate
+# D137 — Android detection surface: C2 fingerprints, the permission-as-fingerprint control, and the DEX-vs-source gap as a bounded rate
 
-**Author:** `android-diver` · **Lane:** `android-diver` · **Report:** D132 · **Class:** static artifact extraction only
-**Reserved:** D132, `O_CREAT|O_EXCL` at 23:04:17; backfilled to registry by the lead.
+**Author:** `android-diver` · **Lane:** `android-diver` · **Report:** D137 · **Class:** static artifact extraction only
+**Reserved:** D137 (renumbered by the lead from D132; lock and registry both read `android-diver` at 23:08:07).
 **SCOPE:** the Android half of the corpus detection surface — C2/network fingerprints, permission-set discrimination, and the source-vs-shipped-class gap, for the two AndroRAT build outputs and the AhMyth payload template.
 **DEFINER SCOPE:** `android-diver`. Static read of artifacts on disk. No execution of any kind.
 **CONDITIONAL SCOPE:** every fingerprint row is marked **SHIPPED** (byte-confirmed in a compiled artifact) or **SOURCE-ONLY** (a claim about intent, confirmed only in source text). A row with neither mark is not a fingerprint.
@@ -154,7 +154,7 @@ Enumerate every `.java` under `app/src/main`, extract `package` plus every top-l
 
 ### 3.2 The AAB drops `config` itself
 
-**New in D132, and it explains an asymmetry D114 recorded but could not account for:** the APK has the class `config` but not the bare string `config`; the AAB has the bare string `config` (pool 18539) but **no class**. The AAB does not merely lose the initialiser — **it loses the class that owns the endpoint.** That is consistent with the AAB's C2 address surviving as an unowned pool string.
+**New in D137, and it explains an asymmetry D114 recorded but could not account for:** the APK has the class `config` but not the bare string `config`; the AAB has the bare string `config` (pool 18539) but **no class**. The AAB does not merely lose the initialiser — **it loses the class that owns the endpoint.** That is consistent with the AAB's C2 address surviving as an unowned pool string.
 
 ### 3.3 Is it generalisable? **No.**
 
@@ -235,9 +235,9 @@ Per the standing correction: **a zero is only a finding if the instrument demons
 ## 7. Frozen measurement, fixed point
 
 ```
-D132 frozen measurement -- counts taken on this file including this block
+D137 frozen measurement -- counts taken on this file including this block
 
-  bytes            : 20587
+  bytes            : 20613
   lf               : 259
   cr               : 0
   bom              : absent
@@ -251,7 +251,7 @@ D132 frozen measurement -- counts taken on this file including this block
   non_ascii        : 50
   btick_nonascii   : 0     (backticked tokens containing non-ASCII content)
   abs_paths        : 0     (absolute path tokens in code spans)
-  sha256_zeroed    : 1BC092890D9422BE75F47B9743064443F89AAE87BB72C7217E6ABB0AC04D43B7
+  sha256_zeroed    : 222F0EE743C27CC4C6AEB9C7DFF3AAC6678D319147B9CC7E0E06B3DDB7A5A892
                      (digest of this file with this one 64-char field replaced
                       by 64 zeros; reproducible by a third party from the artifact
                       alone. A file cannot contain its own true digest -- the
