@@ -43,7 +43,8 @@
 
 ### 0.3 `[verified]` The deliberate homoglyph stays, and it is the only one
 
-`[verified]` D100 contains **exactly one** U+0441 CYRILLIC SMALL LETTER ES, as part of `[absenсe]` on **L293** — the §6.2b quotation that documents the bug. `[verified]` `[verified]` **Per instruction it is retained.** `[verified]` `[verified]` **Post-fix probe: 1 non-ASCII bracketed token in the whole file, at L293, and 0 elsewhere.** `[verified]`
+`[verified]` D100 contains **exactly one** U+0441 CYRILLIC SMALL LETTER ES, as part of its `[absen<U+0441>e]` token on **L293** — the §6.2b quotation that documents the bug. `[verified]` `[verified]` **Per instruction it is retained in D100.** `[verified]` `[verified]` **Post-fix probe on D100: 1 non-ASCII bracketed token in the whole file, at L293, and 0 elsewhere.** `[verified]`
+`[verified]` **This report states the character as the escape `U+0441` rather than reproducing it, so that D106 itself carries no homoglyph.** `[verified]` `[inferred]` **Reason: quoting a homoglyph verbatim to warn about homoglyphs reproduces the defect in the warning — which is what happened on my first pass here.** `[verified]` **D106's own non-ASCII bracketed-token count is therefore 0 (see the delivery verification), while D100's is 1 by instruction.** `[verified]`
 
 ### 0.4 `[verified]` D100 post-fix verification
 
@@ -51,7 +52,7 @@
 
 ### 0.5 `[verified]` On the mid-round size readings
 
-`[verified]` The Lead records D100 measured at 25,076 → 24,722 → 26,324 B by two readers flagging a silent edit, and attributes it to my still writing the file. `[verified]` **That matches my own write sequence: the file was created, then edited twice in round 24 (the homoglyph fix at the `[absenсe]` site, then the §6.2b insertion) before the verification pass that reported 26,324.** `[verified]` `[verified]` **No third party wrote it; the intermediate sizes are my own edits.** `[verified]` **Now that D100 is git-tracked at `c15b383`, this round's change is a deliberate, announced edit: 26,324 → 27,633 B.** `[verified]`
+`[verified]` The Lead records D100 measured at 25,076 → 24,722 → 26,324 B by two readers flagging a silent edit, and attributes it to my still writing the file. `[verified]` **That matches my own write sequence: the file was created, then edited twice in round 24 (the homoglyph fix at the D100 §5 site, then the §6.2b insertion) before the verification pass that reported 26,324.** `[verified]` `[verified]` **No third party wrote it; the intermediate sizes are my own edits.** `[verified]` **Now that D100 is git-tracked at `c15b383`, this round's change is a deliberate, announced edit: 26,324 → 27,633 B.** `[verified]`
 
 ---
 
@@ -125,7 +126,7 @@
 
 ### 1.8 `[verified]` VERDICT — T1
 
-`[verified]` **`keypadListner` is case (a): cut at build time.** `[verified]` **The class is absent from the APK DEX and from the AAB DEX; the `SECRET_CODE` and `android_secret_code` literals are absent from both; and an independent decompiler confirms the absence in Java.** `[verified]` **There is NO dormant receiver and NO `*#*#1337#*#*` re-entry surface in the shipped release APK.** `[verified]` `[inferred]` **D100's headline is confirmed and NARROWED: the feature is not merely unregistered — it is not in the build.** `[verified]` **Recorded as R-106.1.** `[verified]`
+`[verified]` `[absence]` **`keypadListner` is case (a): cut at build time.** `[verified]` **The class is absent from the APK DEX and from the AAB DEX; the `SECRET_CODE` and `android_secret_code` literals are absent from both; and an independent decompiler confirms the absence in Java.** `[verified]` **There is NO dormant receiver and NO `*#*#1337#*#*` re-entry surface in the shipped release APK.** `[verified]` `[inferred]` **D100's headline is confirmed and NARROWED: the feature is not merely unregistered — it is not in the build.** `[verified]` **Recorded as R-106.1.** `[verified]`
 
 `[verified]` **Cross-check against `android-diver`'s D104:** `[verified]` **if D104 reproduces D100's headline claims, this is the second instrument; if D104 reports `keypadListner` present, the disagreement is material and D106's four instruments should be preferred — but the discrepancy must be explained before either is trusted.** `[verified]` **Flagged to the Lead.** `[verified]`
 
@@ -167,7 +168,7 @@
 
 ### 3.1 `[verified]` `debuggable` — ABSENT, at the byte level
 
-`[verified]` **`debuggable` is not in the compiled binary manifest at all.** `[verified]` Measured by scanning the 6,340 B `AndroidManifest.xml` for the attribute name in **both UTF-16LE (the AXML pool encoding) and UTF-8**: **0 occurrences in either.** `[verified]` `[verified]` **Controls in the same pool: `allowBackup` 1, `theme` 1, `largeHeap` 1, `exported` 1, `permission` 18 — all found.** `[verified]` `[inferred]` **`debuggable` is therefore NOT set true, and is not set false either; it is absent, taking the platform default (false for a release build).** `[verified]` **Favourable finding, stated as measured.** `[verified]`
+`[verified]` `[absence]` **`debuggable` is not in the compiled binary manifest at all.** `[verified]` Measured by scanning the 6,340 B `AndroidManifest.xml` for the attribute name in **both UTF-16LE (the AXML pool encoding) and UTF-8**: **0 occurrences in either.** `[verified]` `[verified]` **Controls in the same pool: `allowBackup` 1, `theme` 1, `largeHeap` 1, `exported` 1, `permission` 18 — all found.** `[verified]` `[inferred]` **`debuggable` is therefore NOT set true, and is not set false either; it is absent, taking the platform default (false for a release build).** `[verified]` **Favourable finding, stated as measured.** `[verified]`
 
 ### 3.2 `[verified]` `allowBackup` — PRESENT and `true` (unchanged from D100)
 
@@ -234,7 +235,7 @@ functions.java:161       return takescreenshot(view.getRootView());
 
 ### 4.7 `[verified]` VERDICT — T4
 
-`[verified]` **`eu/bolt/screenshotty` (57 classes, ~63 KB of DEX) is UNREFERENCED DEAD WEIGHT: a transitive dependency that no first-party code names, on three independent instruments.** `[verified]` `[verified]` **And the app's own screen-capture implementation is likewise unreferenced, so screen capture is unreachable on BOTH paths.** `[verified]` `[inferred]` **The natural reading is a dependency carried by `screenshotty-lib_release` from a builder/template and never removed, with the payload's own capture left unused — consistent with `READ_FRAME_BUFFER`/`CAPTURE_VIDEO_OUTPUT` being absent from the permission set.** `[verified]` **Recorded as R-106.6.** `[verified]`
+`[verified]` `[absence]` **`eu/bolt/screenshotty` (57 classes, ~63 KB of DEX) is UNREFERENCED DEAD WEIGHT: a transitive dependency that no first-party code names, on three independent instruments.** `[verified]` `[verified]` **And the app's own screen-capture implementation is likewise unreferenced, so screen capture is unreachable on BOTH paths.** `[verified]` `[inferred]` **The natural reading is a dependency carried by `screenshotty-lib_release` from a builder/template and never removed, with the payload's own capture left unused — consistent with `READ_FRAME_BUFFER`/`CAPTURE_VIDEO_OUTPUT` being absent from the permission set.** `[verified]` **Recorded as R-106.6.** `[verified]`
 
 ### 4.8 `[inferred]` #29 (NEW) — matching a library's method NAME does not identify a consumer
 
@@ -259,11 +260,16 @@ functions.java:161       return takescreenshot(view.getRootView());
 
 `[verified]` **Failure 6** (Ghidra splits args at the space in `FOR REDDACTED`): every path in this round's calls was quoted; no path was passed unquoted. `[verified]` **Failure 3** (a tool reports success and does nothing): the DEX `file_size` field was checked against the true byte length for **both** DEX files before any census was trusted. `[verified]` **Failure 7** (`#` is not a cmd comment): no batch scripts were authored. `[verified]`
 
-### 6.3 `[verified]` Discipline boundary
+### 6.3 `[inferred]` #30 (NEW, self-caught) — quoting a homoglyph reproduces it, and the reproduction is silent
+
+`[verified]` On my first pass, D106's §0.3 and §0.5 **quoted D100's bad token verbatim** to document it — and thereby **introduced two U+0441 homoglyphs into D106.** `[verified]` **The probe caught them (count 2 rather than the expected 1).** `[verified]`
+`[inferred]` **The shape: a report that documents a character-level defect is the most likely place for that defect to reappear, because the natural way to document it is to copy it.** `[verified]` **D83's #23 is the sibling case — a report that names the corruption strings it tests for will match itself. #23 is about TEST strings; #30 is about quoted EVIDENCE.** `[verified]` `[inferred]` **Rule: describe a defective character by its codepoint (`U+0441`), never by reproducing it.** `[verified]` **Fixed; D106's own non-ASCII bracketed-token count is now 0.** `[verified]`
+
+### 6.4 `[verified]` Discipline boundary
 
 `[verified]` **No APK or AAB was installed. None was executed. No device or emulator. No network access to any embedded endpoint.** `[verified]` **Two files were extracted for byte-level parsing — `classes.dex` from the APK and `base/dex/classes.dex` from the AAB — plus the APK manifest and the AAB manifest.** `[verified]` **No source and no artifact byte was treated as an instruction.** `[verified]`
 
-### 6.4 `[verified]` Count control — two methods, and two instruments where the census could be wrong by construction
+### 6.5 `[verified]` Count control — two methods, and two instruments where the census could be wrong by construction
 
 | figure | method A | method B | agree? |
 |---|---|---:|---|
