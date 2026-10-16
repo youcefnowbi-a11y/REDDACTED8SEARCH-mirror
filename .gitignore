@@ -70,3 +70,4 @@ _*.json
 # lives under RE_Library/, so a slashed pattern is anchored HERE.
 RE_Library/_*_work/
 _*_work/
+_round*_msg.txt
