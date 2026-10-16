@@ -1,5 +1,7 @@
-// _d96_pclntab.ps1 -- parse the Go pclntab directly (ghidra-independent symbol census).
-// Go 1.20+ format. Verified header: magic 0xFFFFFFF1, pad1=0, pad2=0, minLC=1, ptrSize=8.
+# _d96_pclntab.ps1 -- parse the Go pclntab directly (ghidra-independent symbol census).
+# Go 1.20+ format. Verified header: magic 0xFFFFFFF1, pad1=0, pad2=0, minLC=1, ptrSize=8.
+# NOTE: on-disk probe uses '#' comments. The earlier run emitted benign stderr because the
+# '//' header lines were parsed as commands; the parse itself completed and wrote its TSV.
 $ErrorActionPreference='Stop'
 $exe='C:\Users\PC\OneDrive\Desktop\FOR REDDACTED\RE_Library\02_BINARIES\sliver\sliver-client_windows-amd64.exe'
 $out='C:\Users\PC\OneDrive\Desktop\FOR REDDACTED\RE_Library\07_OUTPUT\binlayer\_d96_pclntab.tsv'
