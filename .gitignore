@@ -54,3 +54,19 @@ desktop.ini
 _*.csv
 _*.txt
 _*.json
+
+# Lane scratch INSIDE the tree. The three rules above are slash-free and so match
+# at any depth, but they only cover file extensions. A per-lane working DIRECTORY
+# (`RE_Library/_d124_work/`) carries .cs sources and extracted archive members that
+# no extension rule reaches.
+#
+# First seen round 25: covenant-diver's AAB protobuf descent bench. The two archive
+# members in it (`base_manifest_AndroidManifest.xml`, `base_resources.pb`, the latter
+# 501,033 B) carry the AAB's OWN timestamps (00:00:00) -- they are extracted payload,
+# not authored analysis. Rule 1 of this file says what ships is the ANALYSIS, not the
+# corpus; shipping a payload blob would contradict it.
+#
+# `RE_Library/` prefix is required: this file lives at the repo root and the tree
+# lives under RE_Library/, so a slashed pattern is anchored HERE.
+RE_Library/_*_work/
+_*_work/
