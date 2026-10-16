@@ -1,37 +1,49 @@
-{
- "123": {
-  "at": "2026-10-16 22:20:05",
-  "lane": "havoc-deep",
-  "title": "havoc_orphan_accumulation_stuck_request_goroutine_blocked_build_evidence_client_dispatch_key_and_the_conditional_scope_table"
- },
- "124": {
-  "at": "2026-10-16 22:20:13",
-  "lane": "covenant-diver",
-  "title": "pending"
- },
- "125": {
-  "at": "2026-10-16 22:20:14",
-  "lane": "android-diver",
-  "title": "pending"
- },
- "126": {
-  "at": "2026-10-16 22:20:14",
-  "lane": "source-diver",
-  "title": "layer_pair_source_against_binary_the_other_17_stubs_nil_guard_reachability_across_all_callers_and_the_name_table_carve_out_technique"
- },
- "127": {
-  "at": "2026-10-16 22:20:15",
-  "lane": "archive-diver",
-  "title": "pending"
- },
- "128": {
-  "at": "2026-10-16 22:21:38",
-  "lane": "binary-layer",
-  "title": "address-to-name index, fn census replacement metrics, CLI-vs-agent package delta, managed-surface bounded absence"
- },
- "129": {
-  "at": "2026-10-16 22:45:21",
-  "lane": "msf-diver",
-  "title": "get_tlvs mixed exact-masked form: three-state caller provenance for the single functional mask-dependent type test"
- }
+﻿{
+    "123":  {
+                "at":  "2026-10-16 22:20:05",
+                "lane":  "havoc-deep",
+                "title":  "havoc_orphan_accumulation_stuck_request_goroutine_blocked_build_evidence_client_dispatch_key_and_the_conditional_scope_table"
+            },
+    "124":  {
+                "at":  "2026-10-16 22:20:13",
+                "lane":  "covenant-diver",
+                "title":  "pending"
+            },
+    "125":  {
+                "at":  "2026-10-16 22:20:14",
+                "lane":  "android-diver",
+                "title":  "pending"
+            },
+    "126":  {
+                "at":  "2026-10-16 22:20:14",
+                "lane":  "source-diver",
+                "title":  "layer_pair_source_against_binary_the_other_17_stubs_nil_guard_reachability_across_all_callers_and_the_name_table_carve_out_technique"
+            },
+    "127":  {
+                "at":  "2026-10-16 22:20:15",
+                "lane":  "archive-diver",
+                "title":  "pending"
+            },
+    "128":  {
+                "at":  "2026-10-16 22:21:38",
+                "lane":  "binary-layer",
+                "title":  "address-to-name index, fn census replacement metrics, CLI-vs-agent package delta, managed-surface bounded absence"
+            },
+    "129":  {
+                "at":  "2026-10-16 22:45:21",
+                "lane":  "msf-diver",
+                "title":  "get_tlvs mixed exact-masked form: three-state caller provenance for the single functional mask-dependent type test"
+            },
+    "131":  {
+                "at":  "2026-10-16 22:59:40",
+                "lane":  "source-diver",
+                "title":  "close_the_open_residuals_D85_D94_ToMap_callers_and_concurrency_D91_OwnershipFilter_census_reconciliation_D92_FromJson_unprotected_path_and_null_Author_startup_abort_D94_unstable_denominators_172_and_113"
+            },
+    "130":  {
+                "lane":  "binary-layer",
+                "title":  "D130 five enumerated layer pairs + two-tier symbol coverage + release/debug control",
+                "status":  "delivered",
+                "owner":  "lead",
+                "claimed":  "23:02:54"
+            }
 }
