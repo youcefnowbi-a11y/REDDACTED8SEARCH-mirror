@@ -257,7 +257,7 @@
 | Expression | Result |
 |---|---|
 | `"abc".Split("bin")` | **`["abc"]`, len 1 — the WHOLE STRING** |
-| `/a/bin/b`.Split("bin")` | `["/a/","/b"]` |
+| `` `/a/bin/b`.Split("bin") `` | `["/a/","/b"]` |
 | `"".Split("bin")` | **`[""]`, len 1** |
 | **`"abc".Split((string)null)`** | **`["abc"]`, len 1 — NO THROW** |
 | `"aBBc".Split(["BB"])` | `["a","c"]` — multi-char works |
