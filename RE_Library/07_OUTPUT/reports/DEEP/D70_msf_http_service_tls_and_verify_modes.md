@@ -194,6 +194,63 @@ if (hash['SSLVerifyMode'] and supported_ssl_verifiers.include? hash['SSLVerifyMo
 
 **`[verified]` The registration default is `PEER` (`tcp.rb:68`), not `NONE`.** So the *client* path defaults to verifying, and falls back to `VERIFY_PEER` when unset (`ssl_tcp.rb:118-120`). **The strict default is on the client; the absent default is on the server.**
 
+### §2.5 The framework DOCUMENTS its own asymmetry — and the server mixin never even offers the option
+
+**`[verified]` Post-write probe of residual U3 — `tcp_server.rb`'s complete registration (`:20-32`):**
+```ruby
+register_options(
+  [
+    OptBool.new('SSL',        [ false, 'Negotiate SSL for incoming connections', false]),
+    # SSLVersion is currently unsupported for TCP servers (only supported by clients at the moment)
+    OptPath.new('SSLCert',    [ false, 'Path to a custom SSL certificate (default is randomly generated)'])
+  ], Msf::Exploit::Remote::TcpServer
+)
+
+register_advanced_options(
+  [
+    OptBool.new('SSLCompression', [ false, 'Enable SSL/TLS-level compression', false ]),
+    OptString.new('SSLCipher',    [ false, 'String for SSL cipher spec - "DHE-RSA-AES256-SHA" or "ADH"']),
+    Opt::SSLVersion
+  ], Msf::Exploit::Remote::TcpServer
+)
+```
+
+**`[verified]` `SSLVerifyMode` is NOT registered by `TcpServer`.** So a module that creates a server listener never receives the option at all — **§2.3's finding does not widen, and the reason is stronger than "the field is inert": on the server mixin the field does not exist.** Its five registrations are `SSL`, `SSLCert`, `SSLCompression`, `SSLCipher`, `SSLVersion` — **no verification control of any kind.**
+
+**`[read]` And `:22` is a comment authored by the project, stating the conclusion this report derives independently:**
+```ruby
+# SSLVersion is currently unsupported for TCP servers (only supported by clients at the moment)
+```
+
+**`[inferred]` This is a genuine corroboration of D54's thesis from the corpus itself.** D54 found that the two TLS constructors are structurally different, that the client verifies and the server does not, and that the selection is CLIENT-vs-SERVER. **The framework's own comment says the server-side option set is a subset of the client's and names the reason.** `[inferred]` The comment is scoped to `SSLVersion`, but the registration it annotates shows the same asymmetry for **every** verification-related field — and it is the only place in this corpus where the project states the pattern in its own voice.
+
+**`[inferred]` `[absence]` One more consequence worth recording:** the server mixin's `SSLCert` description is *"default is randomly generated"* (`:23`) — **an explicit statement that a certificate is generated on demand**, which is `makessl`'s `ssl_generate_certificate` branch (`ssl.rb:122-126`). **The project documents the self-signed default in the option help text.**
+
+### §2.6 The verification verdict is captured and consumed by NOBODY
+
+**`[verified]` Post-write probe of residual U4 — `peer_verified`, gem-wide and corpus-wide:**
+```
+[gem] ssl_tcp.rb :132   self.peer_verified = valid        <- the callback WRITES it
+[gem] ssl_tcp.rb :363   attr_reader :peer_verified        <- the public READER
+[gem] ssl_tcp.rb :372   attr_writer :peer_verified        <- the public WRITER
+[msf] peer_verified total = 0
+```
+**`[verified]` The gem contains 3 occurrences. The entire MSF tree contains 0.**
+
+**`[read]` `ssl_tcp.rb:131-134`:**
+```ruby
+self.sslctx.verify_callback = Proc.new do |valid, store|
+  self.peer_verified = valid
+  true
+end
+```
+
+> **`[inferred]` The client path asks the verification question, records the verdict in `peer_verified`, returns `true` regardless — and `[absence]` no code in the framework ever reads the recorded verdict.**
+
+**`[inferred]` This STRENGTHENS D54 §3's headline rather than restating it.** D54 described the client as *"asks, writes it down, proceeds."* The measurement now shows the third clause of that sentence is not merely that it proceeds — **it is that nothing consumes what was written down.** The verdict is a dead-end write: a public attribute (`:363` `attr_reader`, `:372` `attr_writer`) with no in-corpus reader.
+
+**`[inferred]` The honest limit, stated rather than smoothed:** `attr_reader :peer_verified` is **public API**, so an external consumer — a plugin, a downstream gem, a module not in this corpus — could read it. **"Never invoked" ≠ "cannot be invoked"** (the standing rule). **`[absence]` No in-corpus consumer exists; that is a bounded claim about this corpus, not a claim that the attribute is dead by design.** The design intent is legible: capture the verdict where a future caller can inspect it. Nothing here does.
+
 ---
 
 ## §3 Q3 — the key-log surface
@@ -330,13 +387,15 @@ ctx.ciphers = "ADH"
 
 **U2 — `ssl_tcp_server.rb:44-45`'s `params.sslctx` bypass was not re-checked for the HTTP-service path.** D58 established the bypass is unreachable from `handler\` because no handler passes `'SSLContext'`. **Probe:** confirm `rex\proto\http\server.rb` never sets `'SSLContext'` (its five keys at `:96-100` do not include it — but `TcpServer`'s `create` may add keys I did not enumerate).
 
-**U3 — `target_uri`/`SSLVerifyMode` on the SERVER path via `tcp_server.rb`.** The `TcpServer` mixin registers `Opt::SSLVersion` and `SSLCompression` (`:29-31`) but I did **not** confirm whether it registers `SSLVerifyMode`. **Probe:** read `tcp_server.rb:20-40` in full. If it does, a server-creating module gets the option and §2.3's inert-field finding widens.
+**U3 — RESOLVED during write (see §2.5).** `tcp_server.rb:20-32` registers `SSL`, `SSLCert`, `SSLCompression`, `SSLCipher`, `SSLVersion` — **and NOT `SSLVerifyMode`.** The finding does not widen; a server-creating module never receives the option.
 
-**U4 — `verify_callback` is never set on the server path, but is `peer_verified` ever read?** `ssl_tcp.rb:363` `attr_reader :peer_verified`. **Probe:** enumerate `peer_verified` consumers. If a caller reads it and acts, the client's "record it and proceed" pattern has a second half I have not seen; if nothing reads it, **`[inferred]` the client captures a verification verdict that no code consumes** — which is D54 §3's headline made stronger.
+**U4 — RESOLVED during write (see §2.6).** `peer_verified` = 3 occurrences in the gem, **0 in the entire MSF tree.** The verdict is captured, exposed as public API, and consumed by no in-corpus code.
 
 **U5 — no execution.** Ruby absent. **`[inferred]`**: `makessl`'s `VERIFY_NONE`-by-default; `keylog_cb` availability; `ADH`'s no-certificate property; and every `const_get("VERIFY_…")` resolution. One Ruby session converts all to `[verified]`.
 
 **U6 — `rex\proto\http\client.rb` (28,244 B) unread** — the client half of the same protocol, and the place `HttpClient`'s TLS actually runs. **Probe:** trace its SSL context construction; it is the HTTP-service path's mirror and has never been traced in this corpus.
+
+**U7 — `Comm::Local`'s server path selects a class from a FLAG, but the client path may resolve through `Proxies`.** D26 established that `Local` walks the proxy chain itself (`each_cons(2)`). **Probe:** confirm whether `param.ssl` is honoured at every hop of the proxy walk or only at the endpoint — a proxied HTTPS connect that upgrades at the wrong layer would be a distinct transport defect.
 
 ---
 
@@ -365,6 +424,18 @@ ctx.ciphers = "ADH"
 > **A configured value that is validated and then never read is indistinguishable from a configured value that works — from the outside.** It produces the intended behaviour for an unintended reason, and it will keep doing so until the consumer changes.
 
 **`[inferred]` The method that catches it is the one used here: enumerate the CONSUMERS of a field, not the DECLARATIONS of it.** Declaration counts (`SSLVerifyMode` = 28, `ssl_verify_mode` = 2 in the gem) suggest a live setting. **The read-site count (`ssl_tcp.rb:116` only, on the client) is what establishes that the server path ignores it.**
+
+**`[inferred]` §2.5 and §2.6 are the same method applied twice more, and they produced two different outcomes** — which is the useful part:
+- **§2.5** — enumerating the *registration* sites (**where a field is offered**) showed the server mixin offers none. Declaration-side enumeration, and it closed a question.
+- **§2.6** — enumerating the *read* sites (**where a value is consumed**) showed `peer_verified` is written and never read.
+
+**`[inferred]` The three questions — is it declared, is it offered, is it read — have three different answers for three different fields in this same subsystem, and no single one of them generalises.**
+
+### §6.4 A corroboration that came from a COMMENT, and how it is treated
+
+**§2.5 quotes `tcp_server.rb:22`:** *"... SSLVersion is currently unsupported for TCP servers (only supported by clients at the moment) ..."*
+
+**`[inferred]` This is a comment, and this lane's standing rule is that a comment is a CLAIM, not a MEASUREMENT.** It is cited here **only as corroboration of a result obtained independently** — the client/server asymmetry was measured in D54 §1 and D70 §1.2 from code, not read off this line. **The comment was not used as evidence for the finding; it was found while enumerating the registrations that produced the finding.** Had the comment disagreed with the measurement, the measurement would stand.
 
 ---
 

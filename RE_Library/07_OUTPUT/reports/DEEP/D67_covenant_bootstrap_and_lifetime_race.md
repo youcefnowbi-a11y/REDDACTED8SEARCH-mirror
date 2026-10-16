@@ -381,3 +381,76 @@ public async Task<ActionResult<GruntCommand>> InteractGrunt(int id, [FromBody] s
 `[read]` My mutation probe classified **`InteractGrunt` (`:1686`) as read-only.** `[verified]` **That is wrong** — its body calls `CreateGruntCommand` at `:1722`, which persists a `GruntCommand`. `[inferred]` **The probe tested only for `SaveChanges`/`Remove`/`Add`/`Update` in the CALLING body, and missed a mutation performed by a callee.** `[verified]` **`InteractGrunt` is a 15th mutating method and belongs in §4.2.** `[inferred]` Logged as **#18** (§5.2). The §4.3 conclusion is unaffected — `InteractGrunt` is the *model* safe case (§4.3) — but the table needed the correction. `[verified]`
 
 ---
+
+## 5. Instrument record
+
+### 5.1 Failure #18 (new, self-caught) — mutation detected only at the call site
+
+`[verified]` §4.1's mutation probe searched each method body for `SaveChangesAsync`/`Remove`/`Add`/`Update`. **That finds mutations the method performs ITSELF and misses mutations it delegates.** `InteractGrunt` calls `CreateGruntCommand` (`:1722`), which persists — and was classified read-only. `[verified]`
+
+`[inferred]` **The rule: a body-level mutation probe measures direct writes, not transitive writes.** Either close over callees or state that the classification is direct-only. `[verified]` **§4.1's table is therefore a lower bound on the mutating set, and §4.2's 14 should read 15.** `[verified]`
+
+### 5.2 Failure #18 in context — the closure family
+
+`[inferred]` **#18 is the transitive variant of #16** (D63 §5.2): both are "the measurement covered one hop, the conclusion needed the closure." #16 was a sum not re-derived from its rows; #18 is a write not found through a callee. `[verified]` **Recorded as one family so it is recognised next time rather than re-learned.** `[verified]`
+
+### 5.3 Failure #19 (new, self-caught) — the two comment instruments must agree before either is trusted
+
+`[verified]` §2.1 ran **two independent comment-aware instruments** over `CovenantHub.cs` and required agreement before publishing **223 → 1**. `[verified]` The positive control — masked text still contains `CreateHttpListener` **and** `class CovenantHub` — is what made the ratio trustworthy. Without it, "223 declared, 1 live" would have been an unexplained collapse indistinguishable from an over-deleting mask. `[verified]`
+
+`[inferred]` **This is D20 §6.2's rule — a broken detector returns a clean zero — applied in advance rather than in retrospect.** The instrument that produced the corpus's best-known false zero (#13) was a regex; this round's largest single verdict came from a regex **positively controlled before use**. `[verified]`
+
+### 5.4 Discipline applied this round
+
+`[verified]` **Every count in §1–§4 states its invocation; every filter states its pattern; both `[absence]` claims carry a control** — §3.2's "no configuration anywhere" is backed by printing **all 14** builder sites rather than asserting none, and §4.3's zero is backed by printing the **5 sites that DO exist** before reporting what doesn't. `[verified]`
+
+`[verified]` **The prefix-filter trap was avoided again:** §4 enumerated members from the **interface body** (`:30-330`) and intersected with controller call targets — **no `Delete*`/`Get*` prefix filter defined the population.** `[verified]` A prefix appears only in §4.2's *presentation* of an already-derived set, never in its derivation. `[verified]`
+
+### 5.5 Species ledger
+
+`[inferred]` **Six species this round, each with its own instrument:**
+
+| Species | Count | Instrument |
+|---|---:|---|
+| `ICovenantService` interface members | **234** | declaration scan, interface body |
+| id-taking members | **46** | parameter-name regex over the 234 |
+| controller-reachable id-taking | **39** | intersect with 179 `_service.X` targets |
+| mutating among those | **14** (→15, #18) | in-body direct-write probe |
+| `GetCurrentUser(HttpContext.User)` sites | **5** | call-site scan |
+| live hub methods | **1** of 223 | two comment-aware instruments + control |
+
+`[inferred]` **Two of the six would have been wrong under a single unchecked pass** — the hub ratio (needed two instruments) and the mutation set (needed callee closure). `[verified]`
+
+---
+
+## 6. Residuals
+
+### R-67.1 `[verified]` — the API bootstrap race is latent, not eliminated
+
+`[inferred]` `Covenant.cs:123-127` seeds `ServiceUser` whenever the table is empty, so D63 §2.4's `Users.Any() == false` precondition cannot hold while the host serves. **But `EnsureCreated` is called at `:120`, `:153`, and `HttpListener.cs:153`** — a database emptied or replaced *while serving* reopens the window. `[inferred]` **Probe:** confirm whether any supported operational path (DB file swap, volume remount) can empty `Users` under a running host.
+
+### R-67.2 `[read]` — `/covenanthub` invocation not executed
+
+`[verified]` §2 established the method is compiled-in, attributed with nothing, and mounted without a gate. **I did not invoke it.** `[inferred]` **Probe:** open a SignalR connection to `/covenanthub`, attempt `CreateHttpListener`, record accept vs. `401`.
+
+### R-67.3 `[inferred]` — YamlDotNet on a misspelled `TaskingType` is untested
+
+`[verified]` §3.5 row 3. YamlDotNet 8.1.1's unmatched-property handling decides between silent-ignore, throw, and coercion to the default. `[inferred]` **This matters:** if an unrecognised enum **coerces to `Assembly`** rather than throwing, then *any* malformed type lands on the `TaskExecute` path. `[inferred]` **Probe:** run the bare `DeserializerBuilder().Build()` over a fixture with `TaskingType: NotARealType` and record throw-vs-coerce. **A five-line test, and the highest-value open item in this report.**
+
+### R-67.4 `[verified]` — no per-object ownership model exists
+
+`[inferred]` §4.4 gap 1. The 15 mutating methods are `RequireJwtBearer`-gated but perform **no ownership test** — structurally impossible, since they hold no principal. `[inferred]` **So any authenticated non-Administrator may delete any object of those classes.** `[inferred]` **Probe:** with a valid `"User"`-role token, issue `DELETE api/grunts/{id}` for a grunt created by another account; record the status code.
+
+### R-67.5 `[read]` — the UI bootstrap exposure depends on deployment binding
+
+`[inferred]` §1.3. Whether `/covenantuser/login` is reachable off-host depends on the bind address (`CovenantBindUrl`, `Covenant.cs:100-107`) and any fronting proxy. `[inferred]` **I did not resolve deployment defaults.** `[inferred]` **Probe:** determine Covenant's default bind and whether the shipped container/compose configs expose it.
+
+### R-67.6 `[inferred]` — the `Set` task's control type is inferred, not read
+
+`[verified]` §3.5's first row names "the `Set` task" as the plausible `TokenTask` flip target. `[read]` The control taskings resolve `GetGruntTaskByName("Set", …)` (`CovenantService.cs:1336, 1365, …`), and `DefaultGruntTasks.yaml` carries four control-typed entries — but **I did not print the `Set` task's own `TaskingType` line this round.** `[inferred]` **Probe:** read `DefaultGruntTasks.yaml` for the task named `Set` and confirm its `TaskingType` is a control type.
+
+---
+
+*D67 — `covenant-diver` — source-only, no REA/GHIDRA. Every figure above was produced by an invocation whose matches are printed in-line. §4.5 and §5 record three self-caught instrument failures; none was load-bearing for a headline claim.*
+
+---

@@ -204,3 +204,47 @@ is not a procedure, it is a second copy of the secret.* **The token is now read 
 in the remote's reflog for everyone with read access. **This push was declined, which is the only reason
 amending was sufficient — had Push Protection not existed, the leak would have shipped silently, because
 nothing else in the workflow looks inside a `.md` file.**
+
+---
+
+## The repo "went 404" again (round 20g) — and this time the *push* lied, not `ls-remote`
+
+`git push` returned **exit code 128** with:
+
+```
+remote: Repository not found.
+fatal: repository 'https://github.com/youcefnowbi-a11y/REDDACTED8SEARCH.git/' not found
+```
+
+That is the real 404 signature, and it looked terminal. **It was transient.** The immediately following attempt — same URL, same token, same branch — returned **exit 0** and `c1c5692..9cb32f0  main -> main`.
+
+### What was actually verified during the false failure
+
+The API is the honest probe, exactly as established in round 18e:
+
+| Probe | Result |
+|---|---|
+| `api.github.com/repos/<full_name>` | **404** |
+| `api.github.com/repositories/1421328957` (by numeric **ID**) | **200**, `permissions: admin=True push=True pull=True` |
+| `api.github.com/user/repos` listing | contained the repo, 1804 KB, `pushed_at 2026-10-16T15:40:11Z` |
+| `api.github.com/repos/youcefnowbi-a11y/void` (control) | **200** |
+| Token scope | full `repo`, 12 repos visible, identity `youcefnowbi-a11y` |
+
+**Both the name-based API call AND the name-based push 404'd; the ID-based API call 200'd.** So for a window, one path into the repository was failing while another succeeded.
+
+### The redaction artefact, and why the char codes matter
+
+`name` arrived in the JSON as the literal 15 characters `R E D A C T E D 8 S E A R C H` — verified as char codes `82,69,68,65,67,84,69,68,56,83,69,65,82,67,72`. **The `8` is a real character in the repository's own name, and the name as published really is that token.** Do not assume a display layer is hiding it; the bytes say otherwise. (`full_name` also round-trips byte-identically via the ID lookup.)
+
+One consequence worth keeping: **a redacted-looking name makes a FailedLookup ambiguous between "wrong name" and "transient failure."** Resolve by **numeric ID** — it cannot be redacted and it is the only stable coordinate.
+
+### The reusable rule (supersedes the round-18e version)
+
+1. **A 404 on one path is not a verdict on the repository.** Probe by ID *and* by name; if they disagree, the repository exists.
+2. **Retry the operation once before believing it.** A push that fails with `Repository not found` may succeed on the next attempt, with no change to URL, token, or permissions.
+3. **`ls-remote` can report success against an unreachable repo (18e). A push can report `Repository not found` against a reachable one (20g). The failure modes are symmetric.** Neither git subcommand's exit status is evidence of repository state on its own.
+4. **Local commits are the asset.** 20 commits were ahead of `origin/main` during the false failure and all of them were intact on disk. The recovery path never depended on the remote.
+
+### Meta-lesson
+
+Round 18e's lesson was *measure the thing, not the proxy*. Round 20g adds: **when the measurement itself is a networked call, even the measurement has a measurement problem.** The API-by-ID was the control that distinguished "repository gone" from "one lookup path flaking," and it was run **while** the alarm was live rather than after.
