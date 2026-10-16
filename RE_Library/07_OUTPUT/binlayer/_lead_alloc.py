@@ -336,11 +336,40 @@ def controls():
     """
     deep = DEEP
     print('=== CLAIM-GATE CONTROLS (run both; they must DIFFER) ===')
+    # LEAD DEFECT (I13): the negative row was HARDCODED to D138. When D138 was
+    # claimed mid-round the row began printing 'D138* -> True' against a label
+    # reading 'a KNOWN-free number' -- a control contradicting its own label.
+    # A control whose stub can be consumed by another lane is a control of its
+    # own timestamp: this is 'a denominator over a growing corpus' applied to a
+    # control. Fixed by DERIVING the negative from live state and choosing a
+    # number that is structurally unclaimable (nobody reserves D9001).
+    d = load()
+    taken = set(int(k) for k in d) | set(locks_on_disk().keys()) | set(on_disk().keys())
+    hi = max(taken) if taken else 141
+    neg = 9001
+    while neg in taken:
+        neg += 1
+    # LEAD DEFECT (I14): the positive row derived `hi` from ALL THREE sources
+    # (registry + locks + disk) but validated it with a FILE GLOB. A freshly
+    # claimed number has a lock and a registry entry and NO FILE, so the row
+    # printed 'D144* -> False' for a number that is legitimately taken. A
+    # control that contradicts its own derivation is worse than no control.
+    # The positive stub must therefore be a number that HAS a FILE, and the
+    # negative a number that has NO file and NO lock and NO registry entry.
+    got_files = on_disk()
+    if got_files:
+        pos = max(got_files)
+        pos_pat = 'D%d*' % pos
+    else:
+        pos_pat = 'D9001*'          # degenerate case, printed as such below
+    neg = 9001
+    while neg in taken:
+        neg += 1
     rows = [
-        ('D130*',  'positive: a KNOWN-taken number', True),
-        ('D138*',  'negative: a KNOWN-free number',  False),
-        ('130*',   'WRONG FORM: misses the D prefix', None),
-        ('D130.md','WRONG FORM: no slug, never exists', None),
+        (pos_pat,   'positive: the highest number WITH A FILE ON DISK', True),
+        ('D%d*' % neg, 'negative: unclaimable stub (nobody reserves it)', False),
+        ('%d*' % pos, 'WRONG FORM: misses the D prefix', None),
+        ('D%d.md' % pos, 'WRONG FORM: no slug, never exists', None),
     ]
     for pat, what, expect in rows:
         got = bool(glob.glob(os.path.join(deep, pat)))
