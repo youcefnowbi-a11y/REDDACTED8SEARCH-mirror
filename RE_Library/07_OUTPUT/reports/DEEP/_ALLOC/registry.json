@@ -28,5 +28,10 @@
   "at": "2026-10-16 22:21:38",
   "lane": "binary-layer",
   "title": "address-to-name index, fn census replacement metrics, CLI-vs-agent package delta, managed-surface bounded absence"
+ },
+ "129": {
+  "at": "2026-10-16 22:45:21",
+  "lane": "msf-diver",
+  "title": "get_tlvs mixed exact-masked form: three-state caller provenance for the single functional mask-dependent type test"
  }
 }
