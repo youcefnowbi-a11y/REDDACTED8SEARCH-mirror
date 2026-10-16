@@ -95,5 +95,9 @@
   "at": "2026-10-16 23:18:36",
   "lane": "archive-diver",
   "title": "binary artefact census: format architecture subsystem sections debug_info exports relocations and the probe that proves each file was opened"
- }
-}
+ },
+    "143":  {
+                "at":  "2026-10-16 23:22:45",
+                "lane":  "covenant-diver",
+                "title":  "covenant_string_literal_dispatch_key_census_fail_open_versus_fail_closed_error_handling_and_the_co_occurrence_fingerprint_rule"
+            }}

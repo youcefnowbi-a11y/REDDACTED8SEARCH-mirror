@@ -1,0 +1,9 @@
+# The corpus's LF convention is MEASURED and asserted in every report's
+# validation block. core.autocrlf=true would rewrite LF->CRLF on checkout,
+# invalidating every recorded LF count. Pin the text formats explicitly.
+*.md   text eol=lf
+*.py   text eol=lf
+*.json text eol=lf
+*.ps1  text eol=lf
+*.lock text eol=lf
+*.tsv  text eol=lf

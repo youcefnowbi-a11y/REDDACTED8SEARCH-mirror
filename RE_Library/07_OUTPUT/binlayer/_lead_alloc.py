@@ -204,6 +204,28 @@ def check(num):
 
     # The three sources are ORed, exactly as the allocator does when deciding
     # whether a number is free. Report the ORAGEN result and the disagreement.
+    # LEAD DEFECT (I16): the three sources were compared for PRESENCE only, never
+    # for OWNERSHIP. D142 was registry=archive-diver with the LEAD's file on disk
+    # and this function printed 'VERDICT: HELD' with no disagreement line --
+    # because in_reg, on_dsk and has_lk were all True. All three agreed the
+    # number was TAKEN and none agreed WHO took it. A lane reading that output
+    # learns the number is taken but not that the artefact on disk belongs to
+    # somebody else. Presence agreement is not ownership agreement.
+    if in_reg:
+        reg_lane = str(d[str(num)].get('lane', '?'))
+        lk_lane = None
+        if has_lk:
+            try:
+                lk_lane = open(lk[num], encoding='utf-8-sig').read().split('|')[0].strip()
+            except Exception:
+                lk_lane = '?'
+        if lk_lane and reg_lane != lk_lane:
+            print('  *** OWNERSHIP DISAGREE ***  registry says %r, lock says %r'
+                  % (reg_lane, lk_lane))
+        if on_dsk:
+            print('      -> the file(s) on disk may belong to a lane that did not')
+            print('         hold the number. Re-check the artefact author line.')
+
     held = in_reg or on_dsk or has_lk
     print('  VERDICT  : %s' % ('HELD' if held else 'FREE'))
     if in_reg != on_dsk or in_reg != has_lk:
