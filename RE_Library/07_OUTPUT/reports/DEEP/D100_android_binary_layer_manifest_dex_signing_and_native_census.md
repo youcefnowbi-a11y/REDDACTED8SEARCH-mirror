@@ -13,7 +13,7 @@
 ## TOC
 
 - **§0 — Scope, the D87 relationship, and one premise that did not hold**
-- **§1 — T1: the compiled manifest vs. the source manifest** — **3 components and 1 permission are compiled away**
+- **§1 — T1: the compiled manifest vs. the source manifest** — **the component and permission diffs are measured in §1.3-§1.4; the SECRET_CODE receiver is among the compiled-away components**
 - **§2 — T2: the DEX census** — 2,472 classes; **3 source classes absent from the APK**
 - **§3 — T3: the signing state** — v1-only, `CN=karma`, self-signed
 - **§4 — T4: native libraries** — **zero; an `[absence]` with its bound**
@@ -314,6 +314,12 @@ central directory offset: 2,057,692
 ---
 
 ## 7. Verification and residuals
+
+### 7.0 `[verified]` Correction to this report's own TOC, applied in round 25
+
+`[verified]` **The TOC line for §1 read "3 components and 1 permission are compiled away" while §1.4 measured and printed FOUR compiled-away components.** `[verified]` **§1.4 is the measurement; the TOC line was stale.** `[inferred]` **The Lead's framing is the right one: a restated count is what drifted, so the fix is to stop restating it.** `[verified]` **The TOC entry now points at §1.3-§1.4 for the numbers and names the SECRET_CODE receiver by hand — a derived reference cannot drift from the body the way a copied integer can.** `[verified]` **Recorded as R-100.10.** `[verified]`
+
+`[inferred]` **This is instrument failure #28 and it is a new shape: a SUMMARY carried a number that the BODY had already superseded.** `[verified]` **Failure #16 in this corpus was "a total must be summed from the rows" — this is its sibling: a summary line must not carry a number the rows no longer support.** `[verified]` **The specific sting here is that the understated figure ("3") omitted precisely the SECRET_CODE receiver, the most significant of the four — so the error understated the finding rather than overstating it.** `[verified]`
 
 ### 7.1 `[verified]` Encoding and shape
 
