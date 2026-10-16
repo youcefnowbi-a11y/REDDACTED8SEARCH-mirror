@@ -114,7 +114,11 @@ using (Tokens t = new Tokens())
 
 ### 1.5 **The residual that bounds Q1 — `SharpSploit` source is NOT VENDORED**
 
-**Positive control first:** the probe finds `.cs` files by name throughout the Covenant tree (152 excl obj/bin). **Then, for `Tokens.cs` / a `SharpSploit` directory: the task YAMLs reference `SharpSploit\SharpSploit\` as a `ReferenceSourceLibraries` **`Location:`** — and enumerating `01_SOURCE_c2` for a `SharpSploit` directory returns nothing.** **The library is an external build-time dependency, resolved at compile time by the launcher, not shipped in this tree.**
+**Positive control first:** the probe finds `.cs` files by name throughout the Covenant tree (152 excl obj/bin). **Then, for `Tokens.cs` / a `SharpSploit` directory: `Tokens.cs` = 0 anywhere in `01_SOURCE_c2`. And the `SharpSploit` directory DOES exist — `Covenant\Data\ReferenceSourceLibraries\SharpSploit\` — but it is EMPTY: zero files, recursively.**
+
+**The task YAMLs reference `SharpSploit\SharpSploit\` as a `ReferenceSourceLibraries` **`Location:`** (`SharpSploit.Credentials.yaml:88`).**
+
+**That empty directory is the strongest form of this finding, and it is worth stating precisely: `SharpSploit` is a DECLARED BUILD INPUT SLOT that exists as a path and carries no source in this corpus.** The library is resolved at compile time by the launcher from a location the tree does not ship. **So the reference is real, the dependency is real, and the implementation is absent — not merely "not found by my probe," which is the weaker claim I would have made without checking.**
 
 **Consequence, stated plainly:** **§1.4's verdict rests on the task bodies, the `TokenTask` semantics at `InternalListener.cs:239`, and the three siblings' `Impersonate()` branches — not on `Tokens.cs`.** **If the delegating lane wants Q1 closed to certainty rather than to the strongest static reading, the probe is: obtain `SharpSploit`'s `Tokens` implementation and read `MakeToken`/`ImpersonateUser` for a thread-scope side effect (`ImpersonateLoggedOnUser`, `SetThreadToken`, or `WindowsIdentity.Impersonate`).** **The evidence available points one way; I am naming the limit rather than eliding it.**
 
@@ -216,7 +220,9 @@ if (relay != null) { relay.Write(this.Profile.FormatRead(wrappedMessage)); }   /
 |---|---|---:|---|
 | **HTTP template** | **`:1592-1609`** | **18** | HTTP — includes `PROFILE_HTTP_HEADER_NAMES/VALUES/URLS/GET_RESPONSE/POST_REQUEST/POST_RESPONSE`, `VALIDATE_CERT`, `USE_CERT_PINNING`, `COVENANT_URIS`, `COVENANT_CERT_HASH` |
 | **Pipe template** | `:1614-1623` | 10 | pipe — `PROFILE_READ_FORMAT`, `PROFILE_WRITE_FORMAT`, `PIPE_NAME`, plus the universal set |
-| **Bridge template** | `:1630-1641` | 10 | bridge — `BRIDGE_MESSENGER_CODE`, `COVENANT_URI` (singular) |
+| **Bridge template** | `:1630-1641` | **12** | bridge — the pipe set **plus** `BRIDGE_MESSENGER_CODE` and `COVENANT_URI` (singular) |
+
+**Re-measured after a discrepancy (§6 failure 3): the HTTP (18) and pipe (10) counts hold; the bridge block is 12, not the 10 I first wrote.** The two extras are exactly `{{REPLACE_BRIDGE_MESSENGER_CODE}}` (`:1631`) and `{{REPLACE_COVENANT_URI}}` (`:1635`) — **which is independent confirmation of §D60 §2.3's finding that `BRIDGE_MESSENGER_CODE` exists only in the GruntBridge family and `COVENANT_URI` (singular) only in GruntBridge.** **The substitution table and the placeholder census agree.**
 
 **Representative, verbatim:**
 
@@ -277,6 +283,7 @@ if (relay != null) { relay.Write(this.Profile.FormatRead(wrappedMessage)); }   /
 | 3 | **Whether `GruntSMBStager.cs:61`'s `PipeSecurity` is the same `WorldSid` grant.** D60 residual 3, still open. | Read `GruntSMBStager.cs:55-70`. |
 | 4 | **Whether `Brute`'s `ThreadState.Running` was ever `IsAlive`** (regression vs. original fork). | No VCS in this tree; `git log -S 'ThreadState.Running'` if a repo is reachable. |
 | 5 | **Whether `Brute`'s HTTP template selection is name-based.** §3.3 infers it from the placeholder census. | Read the template-selection switch in `CovenantService.cs` around the three blocks. |
+| 6 | **Why `Covenant\Data\ReferenceSourceLibraries\SharpSploit\` is present but empty, and whether the launcher resolves it from a sibling path at build time.** §1.5. This decides whether Q1 can ever be closed in-tree. | Search the launcher/builder for how `ReferenceSourceLibraries.Location` is resolved, and for a `SharpSploit` checkout outside `01_SOURCE_c2`. |
 
 ---
 
@@ -286,8 +293,10 @@ if (relay != null) { relay.Write(this.Profile.FormatRead(wrappedMessage)); }   /
 |---:|---|---|---|
 | 1 | **A `Select-String 'Location:'` loop matched every reference assembly** (hundreds of `net35\mscorlib.dll` lines), flooding output to a spill file | reading the truncation notice | **none — but the useful result was buried.** Narrowed to the `SharpSploit\SharpSploit\` line explicitly |
 | 2 | **`Data\Models\GruntTask.cs` does not exist** — constructed the path instead of enumerating | `DirectoryNotFoundException` | **none — re-enumerated and found TWO `GruntTask.cs` (`API\Models\` and `Models\Grunts\`), which is itself the finding at §1.2: only the API-side model carries `TokenTask`.** **This is D60's shape 15 recurring in the same lane; it was caught by the exception, not by discipline.** |
+| 3 | **A `-match` on a single line undercounted `.Replace({{REPLACE_...}})` sites whose call spans lines, and I wrote the transposed counts into §3.2** | **recomputing every headline number as a second method, then reconciling rather than assuming which was right** | **caught before delivery: bridge block is 12, not 10; HTTP 18 and pipe 10 confirmed.** Re-measured with an occurrence-count over joined lines (§3.2). **The corrected number turned out to CONFIRM §D60 §2.3 independently — the two extra bridge substitutions are exactly the two family-unique placeholders.** |
+| 4 | **"SharpSploit directory count = 0" from my first probe was wrong** — a `Where-Object { $_.Name -eq 'SharpSploit' }` against a `-Include 'Tokens.cs'` filtered pipeline can miss a directory | **second-method recompute flagged the contradiction against my own written claim** | **the directory exists and is EMPTY.** Corrected in §1.5 — **and the empty directory is a STRONGER finding than the "not present" I had written.** |
 
-**Failure 2 is the one to keep: I made the exact error the brief warns about, and only the thrown exception stopped it. The enumeration-first habit needs to be mechanical (enumerate → then filter), not remembered.**
+**Failures 3 and 4 are the ones to keep. Both were caught by recomputing my own written claims as a second method and treating a mismatch as a defect in EITHER direction — not by assuming the first number was right.** Failure 3 is the more instructive: **a line-oriented regex silently undercounted a syntax that wraps, and the number it produced (17, then transposed to 18/10/10) looked entirely reasonable.** Had I not re-run it, the report would have shipped a wrong count **and** missed the corroboration that the corrected count provides.
 
 ---
 

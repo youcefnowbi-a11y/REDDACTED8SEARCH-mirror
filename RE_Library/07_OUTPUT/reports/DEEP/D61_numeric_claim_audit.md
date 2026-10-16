@@ -173,12 +173,34 @@ D25_mythic_recv_siblings.md                   big=  108
 | **1** | **`D8` 24 handlers / 26 recursive** | `D8:164`, `:172` | `D42`, `D58`, `D63`, D22 | `[verified]` **D22 §3.2 already records a `26-vs-24` correction** — the number moved once and the downstream lanes were built on it. `[verified]` `D42:39` re-measures the handler population independently. **A 24/26 ambiguity that three reports inherit is the highest-consequence uncheckable figure in the corpus.** |
 | **2** | **`D44` 201 generated / 213 server-side RPC methods** | `D44:94`, `:180` | D51, D12, D19 | `[verified]` `D44:180` is titled *"Reconciling 213 server-side against 201 generated"* — **the report states two populations and the headline uses one.** `[inference]` Which one is the headline is convention-dependent. |
 | **3** | **`D13` 95 taskings** | D13 / D50 | D50, D52, D60, D63 | `[verified]` D50 §4.3 builds the entire server-vs-target framing disagreement on the tasking set. `[inference]` If 95 is a directory count or a registration count, the conclusion differs. |
-| **4** | **`D6` 5,127 recursive `.rb`** | `D6` | D8 | `[verified]` **D8 §0 corrects this exact number**: *"5,127 is the count of `.rb` files under all of `modules/`, not under `modules/exploits/`."* `[verified]` **The corrected value propagated in D8** (no heading or TOC row carries 5,127). `[inference]` **The original error is fixed, the class is not** — D6 still contains the unscoped figure. |
+| **4** | **`D6`/`D7`/`D8`/`D22`/`D42` — the 5,127 / 2,715 scope pair** | `D7:1327` | D8, D22, D42 | **`[verified]` RESOLVED — this one is CLEAN and it is the report's best case.** See §2.3. |
 | **5** | **`D13` `initMiddleware` 3 call sites** | D13 | D24, D32 | `[verified]` D59 found `D13 §7.2` cited as missing by **four independent lanes** (D32, D50, D52, D55). `[inference]` **A section that four lanes rely on and does not exist is the corpus's clearest single point of unverifiable failure.** |
 | **6** | **`D29` `377 Msf::Handler`** | D29 | D22, D42 | `[verified]` D29's own counts were corrected once already (`48/34/9/1 → 81/51/13/2`). `[inference]` A lane with one recorded instrument failure is not thereby disqualified — but its uncorrected figures inherit suspicion as a class. |
 | **7** | **`D55` tag counts per report** | D55 §0 | — | `[verified]` D38's equivalent **moved four times** (`D55:153`). `[inference]` **D55 itself states the figures "cannot be stable."** A number its author declares unstable is unusable as evidence. |
 
 `[inference]` **The ranking's pattern, and it is the report's second finding: the highest-consequence uncheckable numbers are all *populations*, not counts.** 24/26 handlers, 201/213 methods, 95 taskings — **each is a boundary question wearing a number's clothes.** `[inference]` **That is D55's D-3 (boundary) and D-7 (denominator entirely unstated) as the dominant species of the corpus's numeric risk.**
+
+### 2.3 The counter-case — one scope pair the corpus got completely right
+
+`[inference]` **Rank 4 above was demoted after I ran the probe, and the demotion is itself evidence.** My first draft ranked the `5,127` figure as an example of an uncorrected number still sitting in `D6`. **The corpus-wide probe falsifies that:**
+
+```powershell
+Get-ChildItem $r -Recurse -File -Filter '*.md' | ForEach-Object {
+  Select-String -Path $_.FullName -Pattern '5,127' | ForEach-Object { ... } }
+```
+
+`[verified]` **Every occurrence is correctly scoped or correctly attributed:**
+
+| site | text | verdict |
+|---|---|---|
+| `D7:1327` | *"Total: **5,127** `.rb` files under `modules/` — not the ~4,300 in the brief's estimate."* | **correct scope, origin of the number** |
+| `D8:34` | *"`modules/` total — **5,127 files** — same number, different scope"* | **explicit** |
+| `D22:66` | *"**TOTAL 5,127** *(matches D7:1327's independently stated 5,127)*"* | **independently cross-checked** |
+| `D22:559` | *"5,127 across 7 module dirs — verified — 2 enumerators"* | **two enumerators** |
+| `D42:138` | *"`modules\` recursive = 5,127. `modules\exploits` recursive = 2,715. Both of the brief's…"* | **both scopes stated in one line** |
+| `D8:33` | *"`modules/exploits/` | 5,127 files | 2,715 files | corrected here"* | **the retraction, in place** |
+
+`[inference]` **This is the corpus behaving exactly as its own controls require:** the number was corrected (`D8:33`), the corrected value propagated into the heading and TOC (`D8:107`, `D8:16`), the old value survives **only** where it is being explained, and a second enumerator verified it independently (`D22:559`). `[inference]` **It is the counter-example that makes §2's alarm credible rather than reflexive** — the corpus *can* do this. The 607 uncheckable claims are a gap in practice, not an incapacity.
 
 ---
 
@@ -298,8 +320,8 @@ D25_mythic_recv_siblings.md                   big=  108
 | **R-61.2** | **D59's multi-file resolver caveat is inherited** — `D11` (5 files) and `D12` (2 files) are unioned, so **D59's 106 is a lower bound.** | **high** | A per-file resolver would report strictly more failures. Carried forward rather than dropped. |
 | **R-61.3** | **The 607 UNAUDITABLE set is a lower bound on itself.** | **medium** | My invocation detector requires an instrument token on the *same line*. A lane that publishes its invocation in a nearby block or an appendix is scored UNAUDITABLE when it is not. **A block-aware detector would reduce 607.** |
 | **R-61.4** | **The natural-language citation class remains unmeasured** (D59 R-59.4). | **medium** | A parenthetical `(D5)` with no section sign is not an edge under rule R, and *"the corpus found 412 files"* with no command is not a claim under rule 1. Both are real citation forms. |
-| **R-61.5** | **Whether `D8`'s 5,127→2,715 correction propagated *outside* D8.** | **medium** | `[verified]` It did not survive in D8's headings. Whether D6, D17 or D22 still quote the uncorrected value is unchecked. **Probe: `Select-String -Path $r -Recurse -Pattern '5,127'`.** |
-| **R-61.6** | **The genuine double-encoding set (3 documents, 4 sites) is unchecked for propagation.** | **low** | Same sweep, on `C382C2A7`. |
+| **R-61.5** | ~~Whether `D8`'s 5,127→2,715 correction propagated *outside* D8.~~ **RESOLVED — it propagated cleanly (§2.3).** | **closed** | Probe run: every corpus occurrence of 5,127 is correctly scoped or correctly attributed; `D8:34` states both scopes, `D22:559` records 2 independent enumerators, `D42:138` states both sides in one line. **The residual's premise was wrong and the probe is what closed it.** |
+| **R-61.6** | **The genuine double-encoding set is smaller than first counted.** | **low** | `[verified]` Measured corpus-wide: `D41` (2), `D47` (1), `D56` (1) — **and `D61` (3), which are this report quoting the hex string as evidence.** `[inference]` **A byte-defect census must exclude its own quotation, or the act of measuring creates the finding** — the numeric form of D59 §0.4's self-exclusion. True population: **3 sites in 3 documents.** |
 | **R-61.7** | **D61's own claims are not audited by D61.** | **low** | This report publishes 40+ numbers with invocations and a handful of conventions. **A D61-bis that applies rule 1 to this file would be the honest follow-up.** |
 
 ---
